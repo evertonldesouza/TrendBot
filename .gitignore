@@ -1,0 +1,19 @@
+# Configurações sensíveis (NUNCA SUBIR)
+.env
+
+# Ambiente Virtual
+venv/
+env/
+ENV/
+
+# Arquivos gerados pelo Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Gráficos gerados (opcional: se quiser manter o histórico local sem subir pro Git)
+alerta_*.png
+
+# Pastas de IDE
+.vscode/
+.idea/

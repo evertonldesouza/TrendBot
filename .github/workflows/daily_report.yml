@@ -1,0 +1,34 @@
+name: TrendBot Daily Run
+
+on:
+  schedule:
+    # Roda todos os dias às 13:00 UTC (10:00 no horário de Brasília)
+    - cron: '0 13 * * *'
+  workflow_dispatch: # Permite que você rode manualmente clicando num botão
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v3
+
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Instalar dependências
+      run: |
+        pip install -r requirements.txt
+
+    - name: Executar TrendBot
+      env:
+        # Aqui a mágica acontece: o GitHub tira do cofre e coloca no ambiente
+        EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+        EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
+        EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
+        MOEDA_ALVO: "bitcoin"
+        DIAS_HISTORICO: "365"
+      run: python trendbot_engine.py
