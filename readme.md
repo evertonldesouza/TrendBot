@@ -2,7 +2,7 @@
 
 O TrendBot é um ecossistema de análise preditiva para o mercado de criptoativos que transforma dados brutos em inteligência acionável. Ele combina Engenharia de Dados, Machine Learning e Automação para entregar relatórios profissionais diretamente no e-mail do usuário.
 
-Este projeto evoluiu do SAPA original para um motor multimoedas escalável, focado em alta disponibilidade e segurança de dados.
+Este projeto evoluiu para um motor multimoedas escalável, focado em alta disponibilidade e segurança de dados.
 ---
 
 ## Relatório Consolidado (E-mail)
