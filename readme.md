@@ -1,9 +1,8 @@
-# SAPA: Sistema Automatizado de Previsão e Alerta
+# TrendBot: Motor Automatizado de Previsão e Alertas Cripto
 
-O SAPA é uma solução completa de Automação, Data Science e Alerta desenvolvida em Python. O projeto tem como objetivo principal transformar dados brutos de séries temporais (como preços de criptomoedas) em alertas acionáveis e relatórios visuais de forma totalmente automática.
+O **TrendBot** é uma solução *end-to-end* de Automação e Data Science desenvolvida em Python. O objetivo principal do motor é ingerir dados brutos de séries temporais financeiras (como preços de criptomoedas), aplicar modelagem preditiva e entregar alertas acionáveis com relatórios visuais de forma totalmente autônoma.
 
-Ele demonstra proficiência em Engenharia de Dados (API), Machine Learning (Prophet), Automação (Agendamento) e Validação de Estratégias (Backtesting).
-
+Este projeto demonstra a integração prática de **Engenharia de Dados (Consumo de APIs)**, **Machine Learning (Prophet)**, **Automação (Scheduling)** e **Validação Analítica (Backtesting)**.
 ---
 Preview:
 ![Prévia do App](alerta_sapa_20251209_222355.png)
