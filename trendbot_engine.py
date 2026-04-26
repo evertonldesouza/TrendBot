@@ -100,7 +100,7 @@ def fluxo_principal():
     
     relatorio_texto = "📊 RELATÓRIO TRENDBOT MULTIMOEDAS 📊\n" + "="*40 + "\n\n"
     imagens_geradas = []
-    dados_para_json = [] # <-- LISTA ADICIONADA PARA O DASHBOARD
+    dados_para_json = [] 
 
     for moeda in moedas:
         logger.info(f"Analisando {moeda.upper()}...")
@@ -112,12 +112,12 @@ def fluxo_principal():
             
             status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda)
             
-            # Alimenta o texto do e-mail
+            
             relatorio_texto += (f"🔹 {moeda.upper()}: {status} {emoji}\n"
                                f"   Preço: ${preco_hj:,.2f} -> Est.: ${prev_amanha:,.2f} ({var:+.2f}%)\n\n")
             imagens_geradas.append(arq)
 
-            # --- NOVO: ALIMENTA O DICIONÁRIO DO DASHBOARD ---
+            
             dados_para_json.append({
                 "moeda": moeda.upper(),
                 "preco": f"{preco_hj:,.2f}",
@@ -130,20 +130,26 @@ def fluxo_principal():
         else:
             relatorio_texto += f"❌ {moeda.upper()}: Erro na coleta.\n\n"
     
-    # DISPARO DE COMUNICAÇÕES
+    
     if imagens_geradas:
-        # 1. Gera o arquivo data.json para a Web
+       
         salvar_dados_dashboard(dados_para_json)
         
-        # 2. Envia o e-mail como você já fazia
+        
         enviar_email_consolidado(relatorio_texto, imagens_geradas)
     
     logger.info("Ciclo concluído.")
 
 if __name__ == "__main__":
     fluxo_principal()
-    horario = os.getenv("HORARIO_RODADA", "10:00")
-    schedule.every().day.at(horario).do(fluxo_principal)
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+
+
+    if not os.getenv("GITHUB_ACTIONS"):
+        horario = os.getenv("HORARIO_RODADA", "10:00")
+        logger.info(f"Modo local: agendando execução diária às {horario}")
+        schedule.every().day.at(horario).do(fluxo_principal)
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+    else:
+        logger.info("Ambiente Actions detectado. Encerrando após execução única.")
