@@ -2,14 +2,15 @@ name: TrendBot Multi-Asset Daily Run
 
 on:
   schedule:
-    # Roda todos os dias às 13:00 UTC (10:00 da manhã no horário de Brasília)
     - cron: '0 13 * * *'
-  workflow_dispatch: # Permite que você rode o bot manualmente pelo site do GitHub
+  workflow_dispatch:
+
+permissions: 
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout do Código
       uses: actions/checkout@v3
@@ -26,11 +27,17 @@ jobs:
 
     - name: Executar TrendBot Multi-Moedas
       env:
-        # Puxando do Cofre (Secrets) para a memória do servidor
         EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
         EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
         EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
-        # Configurações extras (você pode mudar aqui direto)
         MOEDAS_ALVO: "bitcoin,ethereum,solana,cardano"
         DIAS_HISTORICO: "365"
       run: python trendbot_engine.py
+
+    - name: Commit e Push do Dashboard (data.json e imagens)
+      run: |
+        git config --global user.name "GitHub Action Bot"
+        git config --global user.email "actions@github.com"
+        git add data.json alerta_*.png
+        git commit -m "update: dashboard data and charts [skip ci]" || echo "Sem mudanças para commitar"
+        git push

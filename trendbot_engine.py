@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import logging
 import schedule
@@ -16,7 +17,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 logging.getLogger('cmdstanpy').setLevel(logging.WARN)
 
-# --- FUNÇÃO DE E-MAIL MELHORADA (ACEITA LISTA DE ANEXOS) ---
 def enviar_email_consolidado(mensagem, lista_imagens):
     email_origem = os.getenv("EMAIL_REMETENTE")
     senha = os.getenv("EMAIL_SENHA")
@@ -32,7 +32,6 @@ def enviar_email_consolidado(mensagem, lista_imagens):
     msg['To'] = email_destino
     msg.set_content(mensagem)
 
-    # Loop para anexar todos os gráficos gerados
     for caminho in lista_imagens:
         if os.path.exists(caminho):
             with open(caminho, 'rb') as f:
@@ -47,7 +46,6 @@ def enviar_email_consolidado(mensagem, lista_imagens):
     except Exception as e:
         logger.error(f"Erro no envio: {e}")
 
-# --- FUNÇÕES DE IA E GRÁFICO (IGUAIS ÀS ANTERIORES) ---
 def treinar_e_prever(df_base):
     df_prophet = df_base.reset_index().rename(columns={'Data': 'ds', 'Preco_USD': 'y'})
     modelo = Prophet(daily_seasonality=True).fit(df_prophet)
@@ -80,7 +78,20 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
     plt.close()
     return alerta, nome_arq, emoji
 
-# --- NOVO FLUXO PRINCIPAL MULTIMOEDAS ---
+def salvar_dados_dashboard(dados_consolidado):  
+
+    caminho_json = "data.json"    
+
+    dashboard_data = {
+        "ultima_atualizacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
+        "ativos": dados_consolidado
+    }
+    
+    with open(caminho_json, 'w', encoding='utf-8') as f:
+        json.dump(dashboard_data, f, ensure_ascii=False, indent=4)
+    
+    logger.info("Arquivo data.json gerado para o Dashboard!")
+
 def fluxo_principal():
     logger.info("--- INICIANDO CICLO MULTIMOEDAS ---")
     
@@ -89,6 +100,7 @@ def fluxo_principal():
     
     relatorio_texto = "📊 RELATÓRIO TRENDBOT MULTIMOEDAS 📊\n" + "="*40 + "\n\n"
     imagens_geradas = []
+    dados_para_json = [] # <-- LISTA ADICIONADA PARA O DASHBOARD
 
     for moeda in moedas:
         logger.info(f"Analisando {moeda.upper()}...")
@@ -100,14 +112,30 @@ def fluxo_principal():
             
             status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda)
             
+            # Alimenta o texto do e-mail
             relatorio_texto += (f"🔹 {moeda.upper()}: {status} {emoji}\n"
                                f"   Preço: ${preco_hj:,.2f} -> Est.: ${prev_amanha:,.2f} ({var:+.2f}%)\n\n")
             imagens_geradas.append(arq)
+
+            # --- NOVO: ALIMENTA O DICIONÁRIO DO DASHBOARD ---
+            dados_para_json.append({
+                "moeda": moeda.upper(),
+                "preco": f"{preco_hj:,.2f}",
+                "previsao": f"{prev_amanha:,.2f}",
+                "variacao": f"{var:+.2f}",
+                "status": status,
+                "emoji": emoji,
+                "imagem": arq
+            })
         else:
             relatorio_texto += f"❌ {moeda.upper()}: Erro na coleta.\n\n"
-
-    # ENVIA UM ÚNICO E-MAIL COM TUDO
+    
+    # DISPARO DE COMUNICAÇÕES
     if imagens_geradas:
+        # 1. Gera o arquivo data.json para a Web
+        salvar_dados_dashboard(dados_para_json)
+        
+        # 2. Envia o e-mail como você já fazia
         enviar_email_consolidado(relatorio_texto, imagens_geradas)
     
     logger.info("Ciclo concluído.")
