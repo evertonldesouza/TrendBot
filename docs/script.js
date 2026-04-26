@@ -4,7 +4,28 @@ async function loadDashboard() {
         const response = await fetch('./data.json'); 
         const data = await response.json();
 
-        document.getElementById('update-time').innerText = data.ultima_atualizacao;
+        const ultimaAtualizacao = data.ultima_atualizacao; // ex: "26/04/2026 03:38"
+
+        const partes = ultimaAtualizacao.match(/(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/);
+        const dataAtual = new Date(partes[3], partes[2] - 1, partes[1], partes[4], partes[5]);
+        const agora = new Date();
+        const horasPassadas = Math.floor((agora - dataAtual) / 3600000);
+
+        let corAviso, textoAviso;
+        if (horasPassadas < 12) {
+            corAviso = '#3fb950';  
+            textoAviso = `✅ Atualizado há ${horasPassadas}h`;
+        } else if (horasPassadas < 24) {
+            corAviso = '#d29922';   
+            textoAviso = `⚠️ Atualizado há ${horasPassadas}h — dados podem estar desatualizados`;
+        } else {
+            corAviso = '#f85149';   
+            textoAviso = `🔴 Atualizado há ${horasPassadas}h — robô pode estar com problema!`;
+        }
+
+        const spanUpdate = document.getElementById('update-time');
+        spanUpdate.innerText = `${ultimaAtualizacao} · ${textoAviso}`;
+        spanUpdate.style.color = corAviso;
         
         const grid = document.getElementById('dashboard-grid');
         grid.innerHTML = ''; 

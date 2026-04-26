@@ -58,3 +58,7 @@ header h1 { color: var(--accent); margin-bottom: 5px; }
 }
 
 .chart-btn:hover { background: #30363d; }
+header p {
+    font-size: 0.95rem;
+    transition: color 0.3s;
+}
