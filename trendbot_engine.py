@@ -77,10 +77,11 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
     ax.grid(True, alpha=0.2)
     ax.set_title(f'PREVISÃO {moeda.upper()}\nStatus: {alerta} {emoji}')
     
-    nome_arq = f"docs/alerta_{moeda}.png"
-    plt.savefig(nome_arq, dpi=100)
+    nome_arq = f"alerta_{moeda}.png"        # nome simples → vai no JSON e no href do JS
+    caminho_arq = f"docs/{nome_arq}"        # caminho completo → só para o plt.savefig
+    plt.savefig(caminho_arq, dpi=100)
     plt.close()
-    return alerta, nome_arq, emoji
+    return alerta, nome_arq, emoji    
 
 def salvar_dados_dashboard(dados_consolidado):  
 
@@ -181,7 +182,6 @@ def fluxo_principal():
 
 if __name__ == "__main__":
     fluxo_principal()
-
 
     if not os.getenv("GITHUB_ACTIONS"):
         horario = os.getenv("HORARIO_RODADA", "10:00")

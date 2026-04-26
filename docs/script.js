@@ -20,17 +20,17 @@ async function loadDashboard() {
         let corAviso, textoAviso;
         if (horasPassadas < 12) {
             corAviso = '#3fb950';
-            textoAviso = `✅ Atualizado há ${horasPassadas}h`;
+            textoAviso = `<i class="fas fa-circle-check"></i> Atualizado há ${horasPassadas}h`;
         } else if (horasPassadas < 24) {
             corAviso = '#d29922';
-            textoAviso = `⚠️ Atualizado há ${horasPassadas}h — dados podem estar desatualizados`;
+            textoAviso = `<i class="fas fa-triangle-exclamation"></i> Atualizado há ${horasPassadas}h — dados podem estar desatualizados`;
         } else {
             corAviso = '#f85149';
-            textoAviso = `🔴 Atualizado há ${horasPassadas}h — robô pode estar com problema!`;
+            textoAviso = `<i class="fas fa-circle-xmark"></i> Atualizado há ${horasPassadas}h — robô pode estar com problema!`;
         }
 
         const spanUpdate = document.getElementById('update-time');
-        spanUpdate.innerText = `${ultimaAtualizacao} (UTC) · ${textoAviso}`;
+        spanUpdate.innerHTML = `${ultimaAtualizacao} (UTC) · ${textoAviso}`;
         spanUpdate.style.color = corAviso;
         
         const grid = document.getElementById('dashboard-grid');
@@ -51,7 +51,7 @@ async function loadDashboard() {
                     ${isUp ? '▲' : '▼'} ${ativo.variacao}% (Est. p/ amanhã)
                 </div>
                 <p class="confianca">
-                    📊 Intervalo: $${ativo.confianca_min} – $${ativo.confianca_max}
+                    <i class="fas fa-chart-bar"></i> Intervalo: $${ativo.confianca_min} – $${ativo.confianca_max}
                 </p>
                 <p>Status: <strong>${ativo.status}</strong></p>
                 <a href="./${ativo.imagem}" target="_blank" class="chart-btn">Ver Gráfico de IA</a>
@@ -80,7 +80,7 @@ async function loadHistorico() {
                 <td>${h.moeda}</td>
                 <td>$${h.previsao.toLocaleString('pt-BR')}</td>
                 <td>$${h.confianca_min.toLocaleString('pt-BR')} – $${h.confianca_max.toLocaleString('pt-BR')}</td>
-                <td>${h.preco_real !== null ? '$' + h.preco_real.toLocaleString('pt-BR') : '⏳ Aguardando'}</td>
+                <td>${h.preco_real !== null ? '$' + h.preco_real.toLocaleString('pt-BR') : '<i class="fas fa-clock"></i> Aguardando'}</td>
                 <td>${h.erro !== null ? (h.erro > 0 ? '+' : '') + h.erro.toLocaleString('pt-BR') : '-'}</td>
                 <td>${h.acerto !== null ? h.acerto : '-'}</td>
             `;

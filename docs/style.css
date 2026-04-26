@@ -63,7 +63,14 @@ header p {
     font-size: 0.95rem;
     transition: color 0.3s;
 }
-
+footer {
+    text-align: center;
+    padding: 30px 0;
+    margin-top: 50px;
+    border-top: 1px solid #30363d;
+    color: #8b949e;
+    font-size: 0.9rem;
+}
 .confianca {
     font-size: 0.82rem;
     color: #8b949e;
@@ -77,6 +84,11 @@ header p {
 .historico-section h2 {
     color: var(--accent);
     margin-bottom: 20px;
+}
+
+.historico-section h2 i {
+    font-size: 1.1rem;
+    margin-right: 6px;
 }
 
 .table-wrapper {

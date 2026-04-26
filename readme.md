@@ -1,111 +1,166 @@
 # TrendBot: Intelligent Multi-Asset Forecasting & Alert System
 
-O TrendBot é um ecossistema de análise preditiva para o mercado de criptoativos que transforma dados brutos em inteligência acionável. Ele combina Engenharia de Dados, Machine Learning e Automação para entregar relatórios profissionais diretamente no e-mail do usuário.
+O TrendBot é um ecossistema de análise preditiva para o mercado de criptoativos que transforma dados brutos em inteligência acionável. Ele combina Engenharia de Dados, Machine Learning e Automação para entregar previsões diárias com validação histórica real.
 
-Este projeto evoluiu para um motor multimoedas escalável, focado em alta disponibilidade e segurança de dados.
+ **[Acesse o Dashboard ao vivo](https://evertonldesouza.github.io/TrendBot/)**
+
 ---
 
-## Relatório Consolidado (E-mail)
+## Dashboard
 
-O sistema agrupa as análises de todos os ativos configurados e envia um "Daily Digest" profissional.
+O sistema publica automaticamente um dashboard web atualizado diariamente com previsões, intervalos de confiança e histórico de acertos do modelo.
 
-Preview:
-![Prévia dos Alerta no Email](email.png)
-Bitcoin (BTC)
-![Prévia dos Alertas](bitcoin.png)
-Cardano (ADA)
-![Prévia dos Alertas](cardano.png)
-Ethereum (ETH)
-![Prévia dos Alertas](ethereum.png)
-Solana (SOL)
-![Prévia dos Alertas](solana.png)
+![Dashboard Preview](docs/dashboard.png)
+
 ---
 
-## 🎯 Funcionalidades Principais
+## Funcionalidades
 
-| Módulo |Descrição | Ferramentas Chave|
-|--------|----------|-----------|
-| Módulo 1: Coleta| Puxa dados históricos em tempo real de APIs públicas (CoinGecko).| requests, pandas| 
-| Módulo 2: Modelagem Preditiva| Treina um modelo de Séries Temporais para prever o preço do ativo nas próximas 24 horas.| Prophet (Meta/Facebook)| 
-| Módulo 3: Visualização e Alerta| Gera um alerta condicional (Compra/Venda/Neutro) e cria um gráfico profissional (PNG) com a projeção.| matplotlib| 
-|Módulo 4: Backtesting|Simula a aplicação da estratégia de alerta em dados históricos para provar o lucro teórico.|pandas (simulação customizada)|
-|Módulo 5: Automação| Agendamento diário da execução do fluxo e entrega do alerta.schedule| 
-| Módulo 6: Distribuição (Opcional)| Envio do alerta e do gráfico PNG para um canal/chat (ex: Telegram).| python-telegram-bot| 
+| Módulo | Descrição | Ferramentas |
+|--------|-----------|-------------|
+| **Coleta** | Puxa dados históricos em tempo real via API pública (CoinGecko) | `requests`, `pandas` |
+| **Modelagem Preditiva** | Treina um modelo de Séries Temporais para prever o preço nas próximas 24h com intervalo de confiança | `Prophet (Meta/Facebook)` |
+| **Visualização** | Gera gráfico profissional (PNG) com histórico, previsão e status de alerta (Compra/Venda/Neutro) | `matplotlib` |
+| **Dashboard Web** | Publica automaticamente cards com preço, previsão, variação e intervalo de confiança | `HTML`, `CSS`, `JavaScript` |
+| **Histórico de Acertos** | Salva cada previsão e no dia seguinte compara com o preço real, calculando o erro e validando o modelo | `JSON` |
+| **Relatório por E-mail** | Agrupa análises de todos os ativos e envia um Daily Digest profissional com os gráficos anexados | `smtplib` |
+| **Automação CI/CD** | Execução diária automatizada via GitHub Actions com commit e push dos dados gerados | `GitHub Actions` |
+
 ---
 
-## ⚙️ Instalação e Configuração
+## Como Funciona
 
-Pré-requisitos
-
-- Python 3.8+
-
-- Ambiente virtual (venv)
-
-1. Clonar o Repositório e Configurar o Ambiente
-   
 ```
+CoinGecko API
+     │
+     ▼
+Coleta de dados históricos (365 dias)
+     │
+     ▼
+Modelo Prophet → Previsão D+1 + Intervalo de Confiança
+     │
+     ├──► Gráfico PNG (alerta visual)
+     │
+     ├──► data.json (dashboard web)
+     │
+     ├──► historico.json (validação de acertos)
+     │
+     └──► E-mail consolidado (Daily Digest)
+```
+
+O fluxo completo roda automaticamente todos os dias às **13:00 UTC** via GitHub Actions.
+
+---
+
+## Estratégia de Alertas
+
+| Variação Prevista | Status | Sinal |
+|-------------------|--------|-------|
+| Acima de +1.0% | COMPRA FORTE | 🚀 |
+| Entre 0% e +1.0% | ALTA LEVE | ⬆️ |
+| Entre -1.0% e 0% | NEUTRO | ⚖️ |
+| Abaixo de -1.0% | VENDA | 🚨 |
+
+---
+
+## Validação do Modelo (Histórico de Acertos)
+
+A cada execução, o bot:
+
+1. Busca a previsão feita ontem para cada ativo
+2. Compara com o preço real de hoje
+3. Marca como ✅ se o erro for menor que 2% ou ❌ caso contrário
+4. Registra tudo no `historico.json`, exibido na tabela do dashboard
+
+Isso prova empiricamente a eficácia do modelo ao longo do tempo.
+
+---
+
+## Instalação e Configuração
+
+**Pré-requisitos**
+- Python 3.8+
+- Conta Gmail com senha de app habilitada
+
+**1. Clonar e configurar o ambiente**
+
+```bash
 git clone https://github.com/evertonldesouza/TrendBot.git
 cd TrendBot
 python -m venv venv
-source venv/bin/activate  # Ou venv\Scripts\activate no Windows
-```
-2. Instalar Dependências
-
-Este projeto requer bibliotecas de Data Science e Automação:
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+**2. Criar o arquivo `.env`**
 
----
-
-## ▶️ Como Rodar o Projeto
-O projeto é projetado para rodar indefinidamente, executando o ciclo completo no horário agendado.
-
-1. Execução (Modo Agendamento)
-Mantenha o terminal aberto para que o schedule funcione. O sistema fará um teste inicial e entrará em modo de escuta.
+```env
+EMAIL_REMETENTE=seu@gmail.com
+EMAIL_SENHA=sua_senha_de_app
+EMAIL_DESTINO=destino@gmail.com
+MOEDAS_ALVO=bitcoin,ethereum,solana,cardano
+DIAS_HISTORICO=365
 ```
+
+**3. Rodar localmente**
+
+```bash
 python trendbot_engine.py
 ```
-2. Teste e Configuração do Agendamento
-Ajuste o horário no seu arquivo .env através da variável HORARIO_RODADA=10:00 para definir quando o alerta deve ser enviado todos os dias.
-```
-Python
-# trendbot_engine.py (Final do arquivo)
-HORARIO_RODADA = "10:00" # Ex: Alerta enviado diariamente às 10h da manhã
-```
+
+O sistema executa o ciclo completo uma vez e entra em modo de agendamento para rodar diariamente no horário configurado.
 
 ---
 
-## 💡 Estratégia de Backtesting (Módulo 4)
-O backtesting é executado automaticamente dentro do fluxo principal, simulando a seguinte regra de negociação:
+## Automação com GitHub Actions
 
-- Sinal de Compra: O modelo Prophet prevê uma variação de preço acima de +1.0% no próximo dia.
+O arquivo `.github/workflows/daily_report.yml` configura a execução automática diária.
 
-- Sinal de Venda: O modelo Prophet prevê uma variação de preço abaixo de -1.0% no próximo dia.
-  
-O output do Backtesting é o Lucro Total Acumulado que o sistema teria gerado ao longo do período histórico analisado, validando a eficácia preditiva da sua solução.
+**Secrets necessários no repositório:**
 
-## 📝 Estrutura do Projeto
+| Secret | Descrição |
+|--------|-----------|
+| `EMAIL_REMETENTE` | Endereço Gmail de envio |
+| `EMAIL_SENHA` | Senha de app do Gmail |
+| `EMAIL_DESTINO` | Endereço de destino do relatório |
+
+Configure em: `Settings → Secrets and variables → Actions`
+
+---
+
+## Estrutura do Projeto
+
 ```
 TrendBot/
-├── venv/                 # Ambiente Virtual
-├── trendbot_coleta.py    # Módulo de Coleta de Dados API
-├── trendbot_engine.py    # Módulos de ML, Alerta, Backtesting e Agendamento (principal)
-├── alerta_*.png          # Arquivos de gráficos gerados
-└── README.md             # Documentação do Projeto (este arquivo)
+├── .github/
+│   └── workflows/
+│       └── daily_report.yml   # Automação CI/CD
+├── docs/                      # Dashboard Web (GitHub Pages)
+│   ├── index.html
+│   ├── style.css
+│   ├── script.js
+│   ├── data.json              # Dados atuais (gerado pelo bot)
+│   ├── historico.json         # Histórico de previsões (gerado pelo bot)
+│   └── alerta_*.png           # Gráficos gerados pelo bot
+├── trendbot_coleta.py         # Módulo de coleta via API
+├── trendbot_engine.py         # Motor principal (ML, alertas, e-mail)
+├── requirements.txt
+└── README.md
 ```
+
 ---
 
-## 👨‍💻 Autor
+## Autor
 
 **Everton Lima de Souza**
 
-- LinkedIn: [@evertonldesouza](https://www.linkedin.com/in/evertonldesouza/)
-- GitHub: [@evertonldesouza](https://github.com/evertonldesouza)
-- Email: [evertonldesouza@proton.me]
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-evertonldesouza-blue?logo=linkedin)](https://www.linkedin.com/in/evertonldesouza/)
+[![GitHub](https://img.shields.io/badge/GitHub-evertonldesouza-black?logo=github)](https://github.com/evertonldesouza)
+[![Email](https://img.shields.io/badge/Email-evertonldesouza%40proton.me-purple?logo=protonmail)](mailto:evertonldesouza@proton.me)
 
-## 📄 Licença
+---
+
+## Licença
 
 Este projeto está sob a licença MIT.
 
