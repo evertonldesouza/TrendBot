@@ -77,14 +77,14 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
     ax.grid(True, alpha=0.2)
     ax.set_title(f'PREVISÃO {moeda.upper()}\nStatus: {alerta} {emoji}')
     
-    nome_arq = f"alerta_{moeda}.png"
+    nome_arq = f"docs/alerta_{moeda}.png"
     plt.savefig(nome_arq, dpi=100)
     plt.close()
     return alerta, nome_arq, emoji
 
 def salvar_dados_dashboard(dados_consolidado):  
 
-    caminho_json = "data.json"    
+    caminho_json = "docs/data.json"    
 
     dashboard_data = {
         "ultima_atualizacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
