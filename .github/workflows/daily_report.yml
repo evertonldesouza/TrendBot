@@ -25,24 +25,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Executar TrendBot Multi-Moedas
-      env:
-        EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
-        EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
-        EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
-        MOEDAS_ALVO: "bitcoin,ethereum,solana,cardano"
-        DIAS_HISTORICO: "365"
-      run: python trendbot_engine.py
-
     - name: Commit e Push do Dashboard (data.json e imagens)
       run: |
         git config --global user.name "GitHub Action Bot"
         git config --global user.email "actions@github.com"        
         
-        git config --global --add safe.directory /github/workspace
-
-        git add data.json alerta_*.png
-        git commit -m "update: dashboard data and charts [skip ci]" || echo "Sem mudanças"        
+        git add data.json alerta_*.png        
         
-        git pull --rebase origin main
-        git push origin main
+        if [ -n "$(git status --porcelain)" ]; then
+          git commit -m "update: dashboard data [skip ci]"
+          git pull --rebase origin main
+          git push origin main
+        else
+          echo "Sem mudanças detectadas nos dados. Pulando commit."
+        fi
