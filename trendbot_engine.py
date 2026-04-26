@@ -51,7 +51,11 @@ def treinar_e_prever(df_base):
     modelo = Prophet(daily_seasonality=True).fit(df_prophet)
     future = modelo.make_future_dataframe(periods=1, include_history=False)
     forecast = modelo.predict(future)
-    return df_prophet['y'].iloc[-1], forecast['yhat'].iloc[0]
+    preco_atual = df_prophet['y'].iloc[-1]
+    previsao     = forecast['yhat'].iloc[0]
+    confianca_min = forecast['yhat_lower'].iloc[0] 
+    confianca_max = forecast['yhat_upper'].iloc[0]  
+    return preco_atual, previsao, confianca_min, confianca_max
 
 def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
     if variacao > 1.0: alerta, cor, emoji = "COMPRA FORTE", "#00ff00", "🚀"
@@ -107,7 +111,8 @@ def fluxo_principal():
         df = coletar_dados_historicos(coin=moeda, days=dias)
         
         if df is not None and not df.empty:
-            preco_hj, prev_amanha = treinar_e_prever(df)
+            preco_hj, prev_amanha, conf_min, conf_max = treinar_e_prever(df)
+
             var = ((prev_amanha - preco_hj) / preco_hj) * 100
             
             status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda)
@@ -122,6 +127,8 @@ def fluxo_principal():
                 "moeda": moeda.upper(),
                 "preco": f"{preco_hj:,.2f}",
                 "previsao": f"{prev_amanha:,.2f}",
+                "confianca_min": f"{conf_min:,.2f}",   
+                "confianca_max": f"{conf_max:,.2f}",   
                 "variacao": f"{var:+.2f}",
                 "status": status,
                 "emoji": emoji,

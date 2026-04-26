@@ -58,7 +58,14 @@ header h1 { color: var(--accent); margin-bottom: 5px; }
 }
 
 .chart-btn:hover { background: #30363d; }
+
 header p {
     font-size: 0.95rem;
     transition: color 0.3s;
+}
+
+.confianca {
+    font-size: 0.82rem;
+    color: #8b949e;
+    margin: 4px 0;
 }

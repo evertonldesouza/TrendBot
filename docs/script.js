@@ -50,6 +50,9 @@ async function loadDashboard() {
                 <div class="variation ${isUp ? 'up' : 'down'}">
                     ${isUp ? '▲' : '▼'} ${ativo.variacao}% (Est. p/ amanhã)
                 </div>
+                <p class="confianca">
+                    📊 Intervalo: $${ativo.confianca_min} – $${ativo.confianca_max}
+                </p>
                 <p>Status: <strong>${ativo.status}</strong></p>
                 <a href="./${ativo.imagem}" target="_blank" class="chart-btn">Ver Gráfico de IA</a>
             `;
