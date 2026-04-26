@@ -1,29 +1,35 @@
 {
-    "ultima_atualizacao": "26/04/2026 04:02",
+    "ultima_atualizacao": "26/04/2026 13:59",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "77,396.69",
-            "previsao": "77,472.80",
-            "variacao": "+0.10",
+            "preco": "77,941.03",
+            "previsao": "78,382.28",
+            "confianca_min": "72,330.23",
+            "confianca_max": "85,103.08",
+            "variacao": "+0.57",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,310.10",
-            "previsao": "2,352.03",
-            "variacao": "+1.82",
-            "status": "COMPRA FORTE",
-            "emoji": "🚀",
+            "preco": "2,334.04",
+            "previsao": "2,336.96",
+            "confianca_min": "1,955.23",
+            "confianca_max": "2,683.28",
+            "variacao": "+0.13",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "85.97",
-            "previsao": "86.77",
-            "variacao": "+0.93",
+            "preco": "86.07",
+            "previsao": "86.50",
+            "confianca_min": "70.10",
+            "confianca_max": "102.97",
+            "variacao": "+0.50",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_solana.png"
@@ -32,7 +38,9 @@
             "moeda": "CARDANO",
             "preco": "0.25",
             "previsao": "0.25",
-            "variacao": "+0.57",
+            "confianca_min": "0.19",
+            "confianca_max": "0.32",
+            "variacao": "+0.99",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_cardano.png"
