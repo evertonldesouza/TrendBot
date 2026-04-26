@@ -7,9 +7,13 @@ async function loadDashboard() {
         const ultimaAtualizacao = data.ultima_atualizacao; // "26/04/2026 04:02"
 
         const partes = ultimaAtualizacao.match(/(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/);
-        
-        const dataISO = `${partes[3]}-${partes[2]}-${partes[1]}T${partes[4]}:${partes[5]}:00-03:00`;
-        const dataAtual = new Date(dataISO);
+        const dataAtual = new Date(Date.UTC(
+            parseInt(partes[3]),   // ano
+            parseInt(partes[2])-1, // mês (0-indexed)
+            parseInt(partes[1]),   // dia
+            parseInt(partes[4]),   // hora
+            parseInt(partes[5])    // minuto
+        ));
         const agora = new Date();
         const horasPassadas = Math.floor((agora - dataAtual) / 3600000);
 
@@ -26,7 +30,7 @@ async function loadDashboard() {
         }
 
         const spanUpdate = document.getElementById('update-time');
-        spanUpdate.innerText = `${ultimaAtualizacao} · ${textoAviso}`;
+        spanUpdate.innerText = `${ultimaAtualizacao} (UTC) · ${textoAviso}`;
         spanUpdate.style.color = corAviso;
         
         const grid = document.getElementById('dashboard-grid');
