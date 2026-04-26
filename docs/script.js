@@ -1,7 +1,7 @@
 async function loadDashboard() {
     try {
         
-        const response = await fetch('../data.json'); 
+        const response = await fetch('./data.json'); 
         const data = await response.json();
 
         document.getElementById('update-time').innerText = data.ultima_atualizacao;
@@ -24,7 +24,7 @@ async function loadDashboard() {
                     ${isUp ? '▲' : '▼'} ${ativo.variacao}% (Est. p/ amanhã)
                 </div>
                 <p>Status: <strong>${ativo.status}</strong></p>
-                <a href="../${ativo.imagem}" target="_blank" class="chart-btn">Ver Gráfico de IA</a>
+                <a href="./${ativo.imagem}" target="_blank" class="chart-btn">Ver Gráfico de IA</a>
             `;
             grid.appendChild(card);
         });
