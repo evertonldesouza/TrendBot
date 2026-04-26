@@ -46,6 +46,7 @@ jobs:
         cp alerta_*.png docs/
 
         git add docs/data.json
+        git add docs/historico.json
         git add docs/alerta_*.png
 
         if ! git diff --cached --quiet; then

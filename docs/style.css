@@ -69,3 +69,39 @@ header p {
     color: #8b949e;
     margin: 4px 0;
 }
+
+.historico-section {
+    margin-top: 50px;
+}
+
+.historico-section h2 {
+    color: var(--accent);
+    margin-bottom: 20px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+#historico-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+#historico-table th {
+    background: #21262d;
+    color: var(--accent);
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 2px solid #30363d;
+}
+
+#historico-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #21262d;
+}
+
+#historico-table tr:hover td {
+    background: #161b22;
+}

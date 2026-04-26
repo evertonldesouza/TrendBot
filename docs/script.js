@@ -4,7 +4,7 @@ async function loadDashboard() {
         const response = await fetch('./data.json'); 
         const data = await response.json();
 
-        const ultimaAtualizacao = data.ultima_atualizacao; // "26/04/2026 04:02"
+        const ultimaAtualizacao = data.ultima_atualizacao; 
 
         const partes = ultimaAtualizacao.match(/(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/);
         const dataAtual = new Date(Date.UTC(
@@ -64,4 +64,35 @@ async function loadDashboard() {
     }
 }
 
-window.onload = loadDashboard;
+async function loadHistorico() {
+    try {
+        const response = await fetch('./historico.json');
+        const historico = await response.json();
+
+        const tbody = document.getElementById('historico-body');
+        tbody.innerHTML = '';
+
+        
+        [...historico].reverse().forEach(h => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${h.data}</td>
+                <td>${h.moeda}</td>
+                <td>$${h.previsao.toLocaleString('pt-BR')}</td>
+                <td>$${h.confianca_min.toLocaleString('pt-BR')} – $${h.confianca_max.toLocaleString('pt-BR')}</td>
+                <td>${h.preco_real !== null ? '$' + h.preco_real.toLocaleString('pt-BR') : '⏳ Aguardando'}</td>
+                <td>${h.erro !== null ? (h.erro > 0 ? '+' : '') + h.erro.toLocaleString('pt-BR') : '-'}</td>
+                <td>${h.acerto !== null ? h.acerto : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (error) {
+        document.getElementById('historico-body').innerHTML = 
+            '<tr><td colspan="7">Histórico ainda não disponível.</td></tr>';
+    }
+}
+
+window.onload = () => {
+    loadDashboard();
+    loadHistorico();
+};

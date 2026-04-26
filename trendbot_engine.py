@@ -96,15 +96,32 @@ def salvar_dados_dashboard(dados_consolidado):
     
     logger.info("Arquivo data.json gerado para o Dashboard!")
 
+def carregar_historico():
+    caminho = "docs/historico.json"
+    if os.path.exists(caminho):
+        with open(caminho, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def salvar_historico(historico):
+    caminho = "docs/historico.json"
+    with open(caminho, 'w', encoding='utf-8') as f:
+        json.dump(historico, f, ensure_ascii=False, indent=4)
+    logger.info("Arquivo historico.json atualizado!")
+
 def fluxo_principal():
     logger.info("--- INICIANDO CICLO MULTIMOEDAS ---")
     
     moedas = [m.strip() for m in os.getenv("MOEDAS_ALVO", "bitcoin").split(',')]
     dias = int(os.getenv("DIAS_HISTORICO", "365"))
+    hoje = datetime.now().strftime('%d/%m/%Y')
     
     relatorio_texto = "📊 RELATÓRIO TRENDBOT MULTIMOEDAS 📊\n" + "="*40 + "\n\n"
     imagens_geradas = []
-    dados_para_json = [] 
+    dados_para_json = []
+
+    
+    historico = carregar_historico()
 
     for moeda in moedas:
         logger.info(f"Analisando {moeda.upper()}...")
@@ -112,23 +129,39 @@ def fluxo_principal():
         
         if df is not None and not df.empty:
             preco_hj, prev_amanha, conf_min, conf_max = treinar_e_prever(df)
-
             var = ((prev_amanha - preco_hj) / preco_hj) * 100
-            
             status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda)
+
             
+            for entrada in historico:
+                if entrada['moeda'] == moeda.upper() and entrada.get('preco_real') is None:
+                    entrada['preco_real'] = round(preco_hj, 2)
+                    erro = preco_hj - entrada['previsao']
+                    entrada['erro'] = round(erro, 2)
+                    entrada['acerto'] = '✅' if abs(erro / preco_hj * 100) < 2 else '❌'
+
             
+            historico.append({
+                "data": hoje,
+                "moeda": moeda.upper(),
+                "previsao": round(prev_amanha, 2),
+                "confianca_min": round(conf_min, 2),
+                "confianca_max": round(conf_max, 2),
+                "preco_real": None,  
+                "erro": None,
+                "acerto": None
+            })
+
             relatorio_texto += (f"🔹 {moeda.upper()}: {status} {emoji}\n"
                                f"   Preço: ${preco_hj:,.2f} -> Est.: ${prev_amanha:,.2f} ({var:+.2f}%)\n\n")
             imagens_geradas.append(arq)
 
-            
             dados_para_json.append({
                 "moeda": moeda.upper(),
                 "preco": f"{preco_hj:,.2f}",
                 "previsao": f"{prev_amanha:,.2f}",
-                "confianca_min": f"{conf_min:,.2f}",   
-                "confianca_max": f"{conf_max:,.2f}",   
+                "confianca_min": f"{conf_min:,.2f}",
+                "confianca_max": f"{conf_max:,.2f}",
                 "variacao": f"{var:+.2f}",
                 "status": status,
                 "emoji": emoji,
@@ -136,15 +169,14 @@ def fluxo_principal():
             })
         else:
             relatorio_texto += f"❌ {moeda.upper()}: Erro na coleta.\n\n"
-    
-    
+
     if imagens_geradas:
-       
         salvar_dados_dashboard(dados_para_json)
         
-        
+        historico = historico[-120:]
+        salvar_historico(historico)
         enviar_email_consolidado(relatorio_texto, imagens_geradas)
-    
+
     logger.info("Ciclo concluído.")
 
 if __name__ == "__main__":
