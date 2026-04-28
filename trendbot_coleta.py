@@ -4,10 +4,8 @@ import logging
 import pandas as pd
 from dotenv import load_dotenv
 
-# Carrega as variáveis do arquivo .env
 load_dotenv()
 
-# Configuração do Logging (Registra no console com hora e nível de severidade)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -16,10 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def coletar_dados_historicos(coin: str = None, days: int = None) -> pd.DataFrame:
-    """
-    Coleta dados históricos de preço de uma criptomoeda via API do CoinGecko.
-    """
-    # Puxa do .env ou usa o valor padrão caso não seja passado nos parâmetros
+    
     coin = coin or os.getenv("MOEDA_ALVO", "bitcoin")
     days = days or int(os.getenv("DIAS_HISTORICO", 90))
 
@@ -48,7 +43,6 @@ def coletar_dados_historicos(coin: str = None, days: int = None) -> pd.DataFrame
         logger.error(f"Falha ao conectar com a API do CoinGecko: {e}")
         return None
 
-# Teste local do módulo
 if __name__ == "__main__":
     logger.info("Iniciando teste isolado do módulo de coleta...")
     df_dados = coletar_dados_historicos() 
