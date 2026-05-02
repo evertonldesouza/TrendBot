@@ -12,6 +12,12 @@ from prophet import Prophet
 from dotenv import load_dotenv
 from trendbot_coleta import coletar_dados_historicos
 
+try:
+    import pandas_ta as ta
+    _TA_DISPONIVEL = True
+except ImportError:
+    _TA_DISPONIVEL = False
+
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -48,13 +54,40 @@ def enviar_email_consolidado(mensagem, lista_imagens):
 
 def treinar_e_prever(df_base):
     df_prophet = df_base.reset_index().rename(columns={'Data': 'ds', 'Preco_USD': 'y'})
-    modelo = Prophet(daily_seasonality=True).fit(df_prophet)
+
+    modelo = Prophet(
+        daily_seasonality=True,
+        interval_width=0.90,
+        changepoint_prior_scale=0.05
+    )
+
+    usar_regressores = False
+    if _TA_DISPONIVEL:
+        try:
+            df_prophet['rsi'] = ta.rsi(df_prophet['y'], length=14)
+            df_prophet['sma7'] = ta.sma(df_prophet['y'], length=7)            
+            df_prophet['rsi'] = (df_prophet['rsi'] - 50) / 50       
+            df_prophet['sma7'] = df_prophet['sma7'] / df_prophet['y'] - 1  
+            df_prophet = df_prophet.dropna()
+            modelo.add_regressor('rsi')
+            modelo.add_regressor('sma7')
+            usar_regressores = True
+            logger.info("Regressores técnicos (RSI + SMA7) adicionados ao modelo.")
+        except Exception as e:
+            logger.warning(f"Falha ao calcular indicadores técnicos: {e}. Usando Prophet padrão.")
+
+    modelo.fit(df_prophet)
     future = modelo.make_future_dataframe(periods=1, include_history=False)
+
+    if usar_regressores:
+        future['rsi'] = df_prophet['rsi'].iloc[-1]
+        future['sma7'] = df_prophet['sma7'].iloc[-1]
+
     forecast = modelo.predict(future)
-    preco_atual = df_prophet['y'].iloc[-1]
-    previsao     = forecast['yhat'].iloc[0]
-    confianca_min = forecast['yhat_lower'].iloc[0] 
-    confianca_max = forecast['yhat_upper'].iloc[0]  
+    preco_atual   = df_prophet['y'].iloc[-1]
+    previsao      = forecast['yhat'].iloc[0]
+    confianca_min = forecast['yhat_lower'].iloc[0]
+    confianca_max = forecast['yhat_upper'].iloc[0]
     return preco_atual, previsao, confianca_min, confianca_max
 
 def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
@@ -77,8 +110,8 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
     ax.grid(True, alpha=0.2)
     ax.set_title(f'PREVISÃO {moeda.upper()}\nStatus: {alerta} {emoji}')
     
-    nome_arq = f"alerta_{moeda}.png"        # nome simples → vai no JSON e no href do JS
-    caminho_arq = f"docs/{nome_arq}"        # caminho completo → só para o plt.savefig
+    nome_arq = f"alerta_{moeda}.png"       
+    caminho_arq = f"docs/{nome_arq}"        
     plt.savefig(caminho_arq, dpi=100)
     plt.close()
     return alerta, nome_arq, emoji    
@@ -139,19 +172,26 @@ def fluxo_principal():
                     entrada['preco_real'] = round(preco_hj, 2)
                     erro = preco_hj - entrada['previsao']
                     entrada['erro'] = round(erro, 2)
-                    entrada['acerto'] = '✅' if abs(erro / preco_hj * 100) < 2 else '❌'
+                    dentro_intervalo = entrada['confianca_min'] <= preco_hj <= entrada['confianca_max']
+                    entrada['acerto'] = '✅' if dentro_intervalo else '❌'
 
-            
-            historico.append({
-                "data": hoje,
-                "moeda": moeda.upper(),
-                "previsao": round(prev_amanha, 2),
-                "confianca_min": round(conf_min, 2),
-                "confianca_max": round(conf_max, 2),
-                "preco_real": None,  
-                "erro": None,
-                "acerto": None
-            })
+            ja_existe = any(
+                e['data'] == hoje and e['moeda'] == moeda.upper()
+                for e in historico
+            )
+            if not ja_existe:
+                historico.append({
+                    "data": hoje,
+                    "moeda": moeda.upper(),
+                    "previsao": round(prev_amanha, 2),
+                    "confianca_min": round(conf_min, 2),
+                    "confianca_max": round(conf_max, 2),
+                    "preco_real": None,
+                    "erro": None,
+                    "acerto": None
+                })
+            else:
+                logger.info(f"Previsao de {moeda.upper()} para {hoje} ja existe. Pulando append.")
 
             relatorio_texto += (f"🔹 {moeda.upper()}: {status} {emoji}\n"
                                f"   Preço: ${preco_hj:,.2f} -> Est.: ${prev_amanha:,.2f} ({var:+.2f}%)\n\n")

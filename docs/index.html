@@ -3,25 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrendBot Dashboard</title>
+    <title>TrendBot Analytics</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+
     <header>
-        <div class="container">
-            <h1><i class="fas fa-robot"></i> TrendBot Analytics</h1>
-            <p>Última atualização: <span id="update-time">Carregando...</span></p>
+        <div class="container header-inner">
+            <div class="header-left">
+                <h1><i class="fas fa-robot"></i> TrendBot Analytics</h1>
+                <p class="header-sub">Previsões por IA para as próximas 24h — modelo Prophet + RSI/SMA</p>
+            </div>
+            <div id="freshness-badge" class="badge badge-loading">
+                <i class="fas fa-circle-notch fa-spin"></i> Carregando...
+            </div>
         </div>
     </header>
 
     <main class="container">
-        <div id="dashboard-grid" class="grid">
-            <div class="loading">Buscando previsões da IA...</div>
+
+        <div id="summary-row" class="summary-row">
+            <div class="scard"><div class="scard-label">Ativos monitorados</div><div class="scard-val" id="s-ativos">—</div></div>
+            <div class="scard"><div class="scard-label">Sinais de compra</div><div class="scard-val up" id="s-compra">—</div></div>
+            <div class="scard"><div class="scard-label">Precisão geral (intervalo)</div><div class="scard-val" id="s-precisao">—</div></div>
+            <div class="scard"><div class="scard-label">Maior alta prevista</div><div class="scard-val up" id="s-alta">—</div></div>
+            <div class="scard"><div class="scard-label">Próxima atualização</div><div class="scard-val warn" id="s-prox">—</div></div>
         </div>
+
+        <div id="dashboard-grid" class="grid">
+            <div class="loading"><i class="fas fa-circle-notch fa-spin"></i> Buscando previsões da IA...</div>
+        </div>
+
     </main>
+
     <section class="container historico-section">
-        <h2><i class="fas fa-chart-line"></i> Histórico de Previsões</h2>
+        <div class="section-header">
+            <h2><i class="fas fa-chart-line"></i> Histórico de Previsões</h2>
+            <div class="filter-row" id="filter-row">
+                <button class="filter-btn active" data-moeda="TODOS">Todos</button>
+            </div>
+        </div>
+
         <div class="table-wrapper">
             <table id="historico-table">
                 <thead>
@@ -29,20 +52,33 @@
                         <th>Data</th>
                         <th>Moeda</th>
                         <th>Previsão</th>
-                        <th>Intervalo</th>
                         <th>Real</th>
+                        <th>Intervalo 90%</th>
                         <th>Erro</th>
-                        <th>Acerto</th>
+                        <th>Resultado</th>
                     </tr>
                 </thead>
                 <tbody id="historico-body">
-                    <tr><td colspan="7">Carregando histórico...</td></tr>
+                    <tr><td colspan="7" class="loading-cell"><i class="fas fa-circle-notch fa-spin"></i> Carregando histórico...</td></tr>
                 </tbody>
             </table>
         </div>
     </section>
+
+    <section class="container disclaimer-section">
+        <div class="disclaimer">
+            <i class="fas fa-triangle-exclamation"></i>
+            As previsões são geradas por modelo estatístico (Prophet) com indicadores técnicos (RSI, SMA).
+            Não constituem recomendação de investimento. Criptomoedas são ativos de alto risco —
+            o intervalo de confiança de 90% indica a faixa esperada, não garante resultado.
+        </div>
+    </section>
+
     <footer>
-        <p>Desenvolvido por Everton L. de Souza &copy; 2026</p>
+        <div class="container footer-inner">
+            <span>Desenvolvido por Everton L. de Souza &copy; 2026</span>
+            <span class="footer-model">Prophet + RSI/SMA | Intervalo de confiança 90%</span>
+        </div>
     </footer>
 
     <script src="script.js"></script>

@@ -4,3 +4,4 @@ prophet>=1.1.5
 matplotlib>=3.8.0
 schedule>=1.2.0
 python-dotenv>=1.0.0
+pandas-ta>=0.3.14b
