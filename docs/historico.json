@@ -205,9 +205,9 @@
         "previsao": 78582.64,
         "confianca_min": 72207.94,
         "confianca_max": 84527.89,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 78421.81,
+        "erro": -160.83,
+        "acerto": "✅"
     },
     {
         "data": "01/05/2026",
@@ -215,9 +215,9 @@
         "previsao": 2338.16,
         "confianca_min": 2003.9,
         "confianca_max": 2708.86,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2310.2,
+        "erro": -27.96,
+        "acerto": "✅"
     },
     {
         "data": "01/05/2026",
@@ -225,9 +225,9 @@
         "previsao": 83.64,
         "confianca_min": 67.19,
         "confianca_max": 99.38,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 84.16,
+        "erro": 0.52,
+        "acerto": "✅"
     },
     {
         "data": "01/05/2026",
@@ -235,8 +235,48 @@
         "previsao": 0.25,
         "confianca_min": 0.19,
         "confianca_max": 0.31,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 0.25,
+        "erro": 0.0,
+        "acerto": "✅"
+    },
+    {
+        "data": "02/05/2026",
+        "moeda": "BITCOIN",
+        "previsao": 78448.94,
+        "confianca_min": 76225.94,
+        "confianca_max": 80707.61,
+        "preco_real": 78421.89,
+        "erro": -27.05,
+        "acerto": "✅"
+    },
+    {
+        "data": "02/05/2026",
+        "moeda": "ETHEREUM",
+        "previsao": 2318.3,
+        "confianca_min": 2164.52,
+        "confianca_max": 2468.93,
+        "preco_real": 2310.2,
+        "erro": -8.1,
+        "acerto": "✅"
+    },
+    {
+        "data": "02/05/2026",
+        "moeda": "SOLANA",
+        "previsao": 84.66,
+        "confianca_min": 75.72,
+        "confianca_max": 93.98,
+        "preco_real": 84.16,
+        "erro": -0.5,
+        "acerto": "✅"
+    },
+    {
+        "data": "02/05/2026",
+        "moeda": "CARDANO",
+        "previsao": 0.25,
+        "confianca_min": 0.22,
+        "confianca_max": 0.28,
+        "preco_real": 0.25,
+        "erro": 0.0,
+        "acerto": "✅"
     }
 ]
