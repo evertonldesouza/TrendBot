@@ -100,6 +100,17 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     else:
         alerta, cor_linha, emoji = "NEUTRO",       "#8b949e", "⚖️"
 
+    # Formatador inteligente: preços < $1 usam 4 casas, < $10 usam 2, demais arredondam
+    def fmt(v, decimals=None):
+        if decimals is not None:
+            return f"${v:,.{decimals}f}"
+        if abs(v) < 1:
+            return f"${v:.4f}"
+        elif abs(v) < 10:
+            return f"${v:.2f}"
+        else:
+            return f"${v:,.0f}"
+
     BG      = "#0d1117"
     SURFACE = "#161b22"
     SURFACE2= "#21262d"
@@ -174,12 +185,12 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     ax_cards.axhline(0, color=BORDER, linewidth=0.8)
 
     cards_data = [
-        ("Preço atual",     f"${preco_atual:,.2f}",                       TEXT),
-        ("Previsão amanhã", f"${previsao_amanha:,.2f}  ({variacao:+.2f}%)", cor_linha),
-        ("Intervalo 90%",   f"${conf_min:,.0f} – ${conf_max:,.0f}",        BLUE),
+        ("Preço atual",     fmt(preco_atual, 2),                       TEXT),
+        ("Previsão amanhã", f"{fmt(previsao_amanha, 2)}  ({variacao:+.2f}%)", cor_linha),
+        ("Intervalo 90%",   f"{fmt(conf_min)} – {fmt(conf_max)}",        BLUE),
         ("RSI (14)",        f"{rsi_atual:.1f}  {rsi_label}",               rsi_cor),
-        ("Mín 45d",         f"${preco_min45:,.0f}",                        MUTED),
-        ("Máx 45d",         f"${preco_max45:,.0f}",                        MUTED),
+        ("Mín 45d",         fmt(preco_min45),                        MUTED),
+        ("Máx 45d",         fmt(preco_max45),                        MUTED),
     ]
     positions = [0.03, 0.20, 0.38, 0.58, 0.77, 0.88]
     for (label, valor, cor), x in zip(cards_data, positions):
@@ -190,9 +201,9 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     ax1.axhline(conf_min, color=BLUE, linewidth=0.6, linestyle=":", alpha=0.5)
     ax1.axhline(conf_max, color=BLUE, linewidth=0.6, linestyle=":", alpha=0.5)
 
-    ax1.text(df_plot.index[0], conf_min, f" ${conf_min:,.0f}  ← limite inf. 90%",
+    ax1.text(df_plot.index[0], conf_min, f" {fmt(conf_min)}  ← limite inf. 90%",
              color=BLUE, fontsize=7, alpha=0.6, va="bottom")
-    ax1.text(df_plot.index[0], conf_max, f" ${conf_max:,.0f}  ← limite sup. 90%",
+    ax1.text(df_plot.index[0], conf_max, f" {fmt(conf_max)}  ← limite sup. 90%",
              color=BLUE, fontsize=7, alpha=0.6, va="top")
 
     ax1.plot(df_plot.index, df_plot["SMA21"], color=AMBER,  linewidth=1.2,
@@ -222,7 +233,7 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
 
     offset_y = (conf_max - conf_min) * 0.045
     ax1.annotate(
-        f"${previsao_amanha:,.0f}\n({variacao:+.2f}%)",
+        f"{fmt(previsao_amanha)}\n({variacao:+.2f}%)",
         xy=(dia_prev, previsao_amanha),
         xytext=(dia_prev, previsao_amanha + offset_y),
         color=cor_linha, fontsize=10, fontweight="bold", zorder=7, ha="left",
@@ -230,19 +241,19 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
                   edgecolor=cor_linha, linewidth=0.8, alpha=0.85)
     )
 
-    ax1.annotate(f"Máx ${preco_max45:,.0f}",
+    ax1.annotate(f"Máx {fmt(preco_max45)}",
                  xy=(idx_max, preco_max45),
                  xytext=(0, 10), textcoords="offset points",
                  color=MUTED, fontsize=8,
                  arrowprops=dict(arrowstyle="-", color=FAINT, lw=0.8))
-    ax1.annotate(f"Mín ${preco_min45:,.0f}",
+    ax1.annotate(f"Mín {fmt(preco_min45)}",
                  xy=(idx_min, preco_min45),
                  xytext=(0, -14), textcoords="offset points",
                  color=MUTED, fontsize=8,
                  arrowprops=dict(arrowstyle="-", color=FAINT, lw=0.8))
 
     ax1.set_ylabel("Preço (USD)", fontsize=9, color=MUTED)
-    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"${x:,.0f}"))
+    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: fmt(x)))
     ax1.grid(True, alpha=0.25)
     ax1.tick_params(labelbottom=False)
     ax1.legend(loc="upper left", fontsize=8, framealpha=0.3,
@@ -491,32 +502,6 @@ def treinar_e_prever(df_base):
     confianca_min = forecast['yhat_lower'].iloc[0]
     confianca_max = forecast['yhat_upper'].iloc[0]
     return preco_atual, previsao, confianca_min, confianca_max
-
-def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda):
-    if variacao > 1.0: alerta, cor, emoji = "COMPRA FORTE", "#00ff00", "🚀"
-    elif variacao > 0.0: alerta, cor, emoji = "ALTA LEVE", "#aaffaa", "⬆️"
-    elif variacao < -1.0: alerta, cor, emoji = "VENDA", "#ff0000", "🚨"
-    else: alerta, cor, emoji = "NEUTRO", "#aaaaaa", "⚖️"
-        
-    plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(12, 7))
-    df_plot = df_base.tail(45)
-    ultimo_dia = df_plot.index[-1]
-    dia_prev = ultimo_dia + timedelta(days=1)
-    
-    ax.plot(df_plot.index, df_plot['Preco_USD'], color='#00bfff', label='Histórico')
-    ax.plot([ultimo_dia, dia_prev], [df_plot['Preco_USD'].iloc[-1], previsao_amanha], color=cor, linestyle='--')
-    ax.scatter(dia_prev, previsao_amanha, color=cor, s=150, edgecolors='white')
-    
-    ax.annotate(f' ${previsao_amanha:,.0f}\n ({variacao:+.2f}%)', xy=(dia_prev, previsao_amanha), color=cor, fontweight='bold')
-    ax.grid(True, alpha=0.2)
-    ax.set_title(f'PREVISÃO {moeda.upper()}\nStatus: {alerta} {emoji}')
-    
-    nome_arq = f"alerta_{moeda}.png"       
-    caminho_arq = f"docs/{nome_arq}"        
-    plt.savefig(caminho_arq, dpi=100)
-    plt.close()
-    return alerta, nome_arq, emoji    
 
 def salvar_dados_dashboard(dados_consolidado):  
 
