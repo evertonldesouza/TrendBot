@@ -551,7 +551,7 @@ def fluxo_principal():
         if df is not None and not df.empty:
             preco_hj, prev_amanha, conf_min, conf_max = treinar_e_prever(df)
             var = ((prev_amanha - preco_hj) / preco_hj) * 100
-            status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda)
+            status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda, conf_min, conf_max)
 
             
             for entrada in historico:
