@@ -295,9 +295,9 @@
         "previsao": 2319.03,
         "confianca_min": 2178.34,
         "confianca_max": 2471.41,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2327.21,
+        "erro": 8.18,
+        "acerto": "✅"
     },
     {
         "data": "03/05/2026",
@@ -305,9 +305,9 @@
         "previsao": 84.28,
         "confianca_min": 76.36,
         "confianca_max": 92.08,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 84.12,
+        "erro": -0.16,
+        "acerto": "✅"
     },
     {
         "data": "03/05/2026",
@@ -315,8 +315,8 @@
         "previsao": 0.25,
         "confianca_min": 0.22,
         "confianca_max": 0.28,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 0.25,
+        "erro": 0.0,
+        "acerto": "✅"
     }
 ]
