@@ -225,7 +225,7 @@ python-dotenv   — variáveis de ambiente
  
 ## Autor
  
-**Everton Lima de Souza**
+**Desenvolvido com ☕ e dedicação por Everton L. de Souza.**
  
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-evertonldesouza-blue?logo=linkedin)](https://www.linkedin.com/in/evertonldesouza/)
 [![GitHub](https://img.shields.io/badge/GitHub-evertonldesouza-black?logo=github)](https://github.com/evertonldesouza)
