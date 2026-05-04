@@ -1,37 +1,37 @@
 {
-    "ultima_atualizacao": "03/05/2026 15:59",
+    "ultima_atualizacao": "04/05/2026 15:11",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "78,649.84",
-            "previsao": "78,743.94",
-            "confianca_min": "76,500.70",
-            "confianca_max": "80,979.89",
-            "variacao": "+0.12",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "80,111.50",
+            "previsao": "79,989.86",
+            "confianca_min": "77,601.00",
+            "confianca_max": "82,551.43",
+            "variacao": "-0.15",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,327.21",
-            "previsao": "2,325.05",
-            "confianca_min": "2,184.48",
-            "confianca_max": "2,466.01",
-            "variacao": "-0.09",
+            "preco": "2,368.72",
+            "previsao": "2,358.35",
+            "confianca_min": "2,198.85",
+            "confianca_max": "2,512.49",
+            "variacao": "-0.44",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "84.12",
-            "previsao": "84.08",
-            "confianca_min": "76.23",
-            "confianca_max": "91.59",
-            "variacao": "-0.05",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
+            "preco": "84.89",
+            "previsao": "83.80",
+            "confianca_min": "74.60",
+            "confianca_max": "93.15",
+            "variacao": "-1.29",
+            "status": "VENDA",
+            "emoji": "🚨",
             "imagem": "alerta_solana.png"
         },
         {
@@ -40,9 +40,9 @@
             "previsao": "0.25",
             "confianca_min": "0.22",
             "confianca_max": "0.27",
-            "variacao": "-0.42",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
+            "variacao": "-1.43",
+            "status": "VENDA",
+            "emoji": "🚨",
             "imagem": "alerta_cardano.png"
         }
     ]
