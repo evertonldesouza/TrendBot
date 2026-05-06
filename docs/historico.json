@@ -365,9 +365,9 @@
         "previsao": 81503.53,
         "confianca_min": 79007.72,
         "confianca_max": 84086.82,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 81734.16,
+        "erro": 230.63,
+        "acerto": "✅"
     },
     {
         "data": "06/05/2026",
@@ -375,9 +375,9 @@
         "previsao": 2361.09,
         "confianca_min": 2220.4,
         "confianca_max": 2511.87,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2362.0,
+        "erro": 0.91,
+        "acerto": "✅"
     },
     {
         "data": "06/05/2026",
@@ -385,9 +385,9 @@
         "previsao": 88.12,
         "confianca_min": 78.35,
         "confianca_max": 97.79,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 88.85,
+        "erro": 0.73,
+        "acerto": "✅"
     },
     {
         "data": "06/05/2026",
@@ -395,8 +395,8 @@
         "previsao": 0.27,
         "confianca_min": 0.24,
         "confianca_max": 0.29,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 0.27,
+        "erro": -0.0,
+        "acerto": "✅"
     }
 ]
