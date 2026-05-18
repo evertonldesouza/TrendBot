@@ -805,9 +805,9 @@
         "previsao": 78231.66,
         "confianca_min": 75637.08,
         "confianca_max": 80826.47,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 76399.55,
+        "erro": -1832.11,
+        "acerto": "✅"
     },
     {
         "data": "17/05/2026",
@@ -815,9 +815,9 @@
         "previsao": 2183.77,
         "confianca_min": 2044.96,
         "confianca_max": 2318.24,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2101.93,
+        "erro": -81.84,
+        "acerto": "✅"
     },
     {
         "data": "17/05/2026",
@@ -825,9 +825,9 @@
         "previsao": 86.32,
         "confianca_min": 77.48,
         "confianca_max": 94.35,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 84.11,
+        "erro": -2.21,
+        "acerto": "✅"
     },
     {
         "data": "17/05/2026",
@@ -835,6 +835,46 @@
         "previsao": 0.25,
         "confianca_min": 0.22,
         "confianca_max": 0.29,
+        "preco_real": 0.25,
+        "erro": -0.0,
+        "acerto": "✅"
+    },
+    {
+        "data": "18/05/2026",
+        "moeda": "BITCOIN",
+        "previsao": 76396.13,
+        "confianca_min": 73891.63,
+        "confianca_max": 78941.96,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "18/05/2026",
+        "moeda": "ETHEREUM",
+        "previsao": 2095.44,
+        "confianca_min": 1948.68,
+        "confianca_max": 2251.34,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "18/05/2026",
+        "moeda": "SOLANA",
+        "previsao": 83.51,
+        "confianca_min": 75.47,
+        "confianca_max": 91.33,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "18/05/2026",
+        "moeda": "CARDANO",
+        "previsao": 0.24,
+        "confianca_min": 0.21,
+        "confianca_max": 0.27,
         "preco_real": null,
         "erro": null,
         "acerto": null
