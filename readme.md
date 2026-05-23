@@ -24,6 +24,7 @@ O sistema publica automaticamente um dashboard web atualizado diariamente com pr
 | **Dashboard Web** | Publica cards com preço, previsão, variação, posição no intervalo de confiança e acertos recentes por ativo | `HTML`, `CSS`, `JavaScript` |
 | **Histórico de Acertos** | Salva cada previsão e no ciclo seguinte compara com o preço real, validando se caiu dentro do intervalo de confiança | `JSON` |
 | **Relatório por E-mail** | Agrupa análises de todos os ativos e envia um Daily Digest com os gráficos anexados | `smtplib` |
+| **Testes & Qualidade** | Testes unitários com pytest (11 testes) e type hints em todo código | `pytest`, `mypy` |
 | **Automação CI/CD** | Execução diária automatizada via GitHub Actions com commit e push dos dados gerados | `GitHub Actions` |
  
 ---
@@ -153,6 +154,12 @@ python trendbot_engine.py
 ```
  
 O sistema executa o ciclo completo e entra em modo de agendamento para rodar diariamente no horário configurado. Em ambiente GitHub Actions, encerra após a execução única.
+
+**4. Rodar os testes**
+
+```bash
+pytest tests/ -v
+```
  
 ---
  
@@ -200,11 +207,13 @@ TrendBot/
 │   ├── data.json              # Previsões do dia (gerado pelo robô)
 │   ├── historico.json         # Histórico de previsões (gerado pelo robô)
 │   └── alerta_*.png           # Gráficos gerados pelo robô
+├── tests/
+│   └── test_trendbot.py       # Testes unitários (pytest)
 ├── trendbot_coleta.py         # Módulo de coleta via API CoinGecko
 ├── trendbot_engine.py         # Motor principal: ML, gráficos, dashboard, e-mail
 ├── limpar_historico.py        # Utilitário: remove duplicatas do historico.json
 ├── requirements.txt
-└── README.md
+└── readme.md
 ```
  
 ---
@@ -219,6 +228,8 @@ pandas-ta       — indicadores técnicos (RSI, SMA)
 matplotlib      — geração de gráficos
 schedule        — agendamento local
 python-dotenv   — variáveis de ambiente
+pytest          — testes unitários
+ta              — fallback para pandas-ta (indicadores técnicos)
 ```
  
 ---
