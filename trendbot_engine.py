@@ -4,6 +4,8 @@ import time
 import logging
 import schedule
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import smtplib
 from datetime import datetime, timedelta
@@ -11,6 +13,7 @@ from email.message import EmailMessage
 from prophet import Prophet
 from dotenv import load_dotenv
 from trendbot_coleta import coletar_dados_historicos
+from typing import Optional
 
 try:
     import pandas_ta as ta
@@ -23,17 +26,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 logging.getLogger('cmdstanpy').setLevel(logging.WARN)
 
-def enviar_email_consolidado(mensagem, lista_imagens):
+
+def calcular_rsi(series: pd.Series, length: int = 14) -> pd.Series:
+    if _TA_DISPONIVEL:
+        return ta.rsi(series, length=length)
+    delta = series.diff()
+    gain = delta.clip(lower=0).rolling(length, min_periods=1).mean()
+    loss = (-delta.clip(upper=0)).rolling(length, min_periods=1).mean()
+    return 100 - (100 / (1 + gain / loss.replace(0, 0.0001)))
+
+
+def enviar_email_consolidado(mensagem: str, lista_imagens: list[str]) -> None:
     email_origem = os.getenv("EMAIL_REMETENTE")
     senha = os.getenv("EMAIL_SENHA")
     email_destino = os.getenv("EMAIL_DESTINO")
 
     if not all([email_origem, senha, email_destino]):
-        logger.error("Credenciais faltando!")
+        logger.error("Credenciais de email faltando!")
         return
 
     msg = EmailMessage()
-    msg['Subject'] = f"📊 TrendBot Multi-Report: {datetime.now().strftime('%d/%m/%Y')}"
+    msg['Subject'] = f"TrendBot Multi-Report: {datetime.now().strftime('%d/%m/%Y')}"
     msg['From'] = email_origem
     msg['To'] = email_destino
     msg.set_content(mensagem)
@@ -48,11 +61,12 @@ def enviar_email_consolidado(mensagem, lista_imagens):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
             smtp.login(email_origem, senha)
             smtp.send_message(msg)
-        logger.info("Relatório Consolidado enviado com sucesso!")
+        logger.info("Relatorio Consolidado enviado com sucesso!")
     except Exception as e:
-        logger.error(f"Erro no envio: {e}")
+        logger.error(f"Erro no envio de email: {e}")
 
-def treinar_e_prever(df_base):
+
+def treinar_e_prever(df_base: pd.DataFrame) -> tuple[float, float, float, float]:
     df_prophet = df_base.reset_index().rename(columns={'Data': 'ds', 'Preco_USD': 'y'})
 
     modelo = Prophet(
@@ -64,33 +78,43 @@ def treinar_e_prever(df_base):
     usar_regressores = False
     if _TA_DISPONIVEL:
         try:
-            df_prophet['rsi'] = ta.rsi(df_prophet['y'], length=14)
+            df_prophet['rsi'] = calcular_rsi(df_prophet['y'], length=14)
             df_prophet['sma7'] = ta.sma(df_prophet['y'], length=7)
-            df_prophet['rsi'] = (df_prophet['rsi'] - 50) / 50       
-            df_prophet['sma7'] = df_prophet['sma7'] / df_prophet['y'] - 1  
+            df_prophet['rsi'] = (df_prophet['rsi'] - 50) / 50
+            df_prophet['sma7'] = df_prophet['sma7'] / df_prophet['y'] - 1
             df_prophet = df_prophet.dropna()
             modelo.add_regressor('rsi')
             modelo.add_regressor('sma7')
             usar_regressores = True
-            logger.info("Regressores técnicos (RSI + SMA7) adicionados ao modelo.")
+            logger.info("Regressores tecnicos (RSI + SMA7) adicionados ao modelo.")
         except Exception as e:
-            logger.warning(f"Falha ao calcular indicadores técnicos: {e}. Usando Prophet padrão.")
+            logger.warning(f"Falha ao calcular indicadores tecnicos: {e}. Usando Prophet padrao.")
+    else:
+        logger.warning("pandas-ta nao disponivel. Rodando Prophet sem regressores tecnicos.")
 
     modelo.fit(df_prophet)
     future = modelo.make_future_dataframe(periods=1, include_history=False)
 
-    if usar_regressores:
+    if usar_regressores and not future.empty:
         future['rsi'] = df_prophet['rsi'].iloc[-1]
         future['sma7'] = df_prophet['sma7'].iloc[-1]
 
     forecast = modelo.predict(future)
-    preco_atual   = df_prophet['y'].iloc[-1]
-    previsao      = forecast['yhat'].iloc[0]
-    confianca_min = forecast['yhat_lower'].iloc[0]
-    confianca_max = forecast['yhat_upper'].iloc[0]
+    preco_atual = float(df_prophet['y'].iloc[-1])
+    previsao = float(forecast['yhat'].iloc[0])
+    confianca_min = float(forecast['yhat_lower'].iloc[0])
+    confianca_max = float(forecast['yhat_upper'].iloc[0])
     return preco_atual, previsao, confianca_min, confianca_max
 
-def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, conf_max):
+
+def gerar_alerta_visual(
+    df_base: pd.DataFrame,
+    previsao_amanha: float,
+    variacao: float,
+    moeda: str,
+    conf_min: float,
+    conf_max: float,
+) -> tuple[str, str, str]:
     if variacao > 1.0:
         alerta, cor_linha, emoji = "COMPRA FORTE", "#3fb950", "🚀"
     elif variacao > 0.0:
@@ -100,8 +124,7 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     else:
         alerta, cor_linha, emoji = "NEUTRO",       "#8b949e", "⚖️"
 
-    # Formatador inteligente: preços < $1 usam 4 casas, < $10 usam 2, demais arredondam
-    def fmt(v, decimals=None):
+    def fmt(v: float, decimals: Optional[int] = None) -> str:
         if decimals is not None:
             return f"${v:,.{decimals}f}"
         if abs(v) < 1:
@@ -134,20 +157,16 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     df_plot     = df_base.tail(45).copy()
     ultimo_dia  = df_plot.index[-1]
     dia_prev    = ultimo_dia + timedelta(days=1)
-    preco_atual = df_plot["Preco_USD"].iloc[-1]
-    preco_min45 = df_plot["Preco_USD"].min()
-    preco_max45 = df_plot["Preco_USD"].max()
+    preco_atual = float(df_plot["Preco_USD"].iloc[-1])
+    preco_min45 = float(df_plot["Preco_USD"].min())
+    preco_max45 = float(df_plot["Preco_USD"].max())
     idx_max     = df_plot["Preco_USD"].idxmax()
     idx_min     = df_plot["Preco_USD"].idxmin()
 
     df_plot["SMA7"]  = df_plot["Preco_USD"].rolling(7,  min_periods=1).mean()
     df_plot["SMA21"] = df_plot["Preco_USD"].rolling(21, min_periods=1).mean()
-
-    delta = df_plot["Preco_USD"].diff()
-    gain  = delta.clip(lower=0).rolling(14, min_periods=1).mean()
-    loss  = (-delta.clip(upper=0)).rolling(14, min_periods=1).mean()
-    df_plot["RSI"] = 100 - (100 / (1 + gain / loss.replace(0, 0.0001)))
-    rsi_atual  = df_plot["RSI"].iloc[-1]
+    df_plot["RSI"]   = calcular_rsi(df_plot["Preco_USD"], length=14)
+    rsi_atual  = float(df_plot["RSI"].iloc[-1])
     rsi_cor    = "#f85149" if rsi_atual > 70 else ("#3fb950" if rsi_atual < 30 else MUTED)
     rsi_label  = "Sobrecomprado" if rsi_atual > 70 else ("Sobrevendido" if rsi_atual < 30 else "Neutro")
 
@@ -164,7 +183,7 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
 
     fig.text(0.08, 0.97, f"{moeda.upper()}", fontsize=18, fontweight="bold",
              color=TEXT, ha="left", va="top")
-    fig.text(0.08, 0.963, f"Previsão para as próximas 24h  ·  últimos 45 dias",
+    fig.text(0.08, 0.963, f"Previsao para as proximas 24h  ·  ultimos 45 dias",
              fontsize=9, color=MUTED, ha="left", va="top")
     status_x = 0.97
     status_bg = {"COMPRA FORTE": "#1a3a23", "ALTA LEVE": "#132033",
@@ -185,12 +204,12 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     ax_cards.axhline(0, color=BORDER, linewidth=0.8)
 
     cards_data = [
-        ("Preço atual",     fmt(preco_atual, 2),                       TEXT),
-        ("Previsão amanhã", f"{fmt(previsao_amanha, 2)}  ({variacao:+.2f}%)", cor_linha),
-        ("Intervalo 90%",   f"{fmt(conf_min)} – {fmt(conf_max)}",        BLUE),
+        ("Preco atual",     fmt(preco_atual, 2),                       TEXT),
+        ("Previsao amanha", f"{fmt(previsao_amanha, 2)}  ({variacao:+.2f}%)", cor_linha),
+        ("Intervalo 90%",   f"{fmt(conf_min)} - {fmt(conf_max)}",        BLUE),
         ("RSI (14)",        f"{rsi_atual:.1f}  {rsi_label}",               rsi_cor),
-        ("Mín 45d",         fmt(preco_min45),                        MUTED),
-        ("Máx 45d",         fmt(preco_max45),                        MUTED),
+        ("Min 45d",         fmt(preco_min45),                        MUTED),
+        ("Max 45d",         fmt(preco_max45),                        MUTED),
     ]
     positions = [0.03, 0.20, 0.38, 0.58, 0.77, 0.88]
     for (label, valor, cor), x in zip(cards_data, positions):
@@ -201,9 +220,9 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     ax1.axhline(conf_min, color=BLUE, linewidth=0.6, linestyle=":", alpha=0.5)
     ax1.axhline(conf_max, color=BLUE, linewidth=0.6, linestyle=":", alpha=0.5)
 
-    ax1.text(df_plot.index[0], conf_min, f" {fmt(conf_min)}  ← limite inf. 90%",
+    ax1.text(df_plot.index[0], conf_min, f" {fmt(conf_min)}  <- limite inf. 90%",
              color=BLUE, fontsize=7, alpha=0.6, va="bottom")
-    ax1.text(df_plot.index[0], conf_max, f" {fmt(conf_max)}  ← limite sup. 90%",
+    ax1.text(df_plot.index[0], conf_max, f" {fmt(conf_max)}  <- limite sup. 90%",
              color=BLUE, fontsize=7, alpha=0.6, va="top")
 
     ax1.plot(df_plot.index, df_plot["SMA21"], color=AMBER,  linewidth=1.2,
@@ -215,7 +234,7 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
                      df_plot["Preco_USD"].min() * 0.995,
                      alpha=0.06, color=BLUE)
     ax1.plot(df_plot.index, df_plot["Preco_USD"],
-             color=BLUE, linewidth=2, zorder=3, label="Preço")
+             color=BLUE, linewidth=2, zorder=3, label="Preco")
 
     ax1.scatter([ultimo_dia], [preco_atual], color=BLUE, s=80,
                 zorder=6, edgecolors="white", linewidths=1.5)
@@ -223,9 +242,8 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     ax1.axvline(ultimo_dia, color=BORDER, linewidth=1, linestyle=":", zorder=1)
     y_base = preco_min45 * 0.9975
     ax1.text(ultimo_dia, y_base, "  hoje",   color=MUTED,     fontsize=8, va="top")
-    ax1.text(dia_prev,   y_base, "  amanhã", color=cor_linha, fontsize=8, va="top")
+    ax1.text(dia_prev,   y_base, "  amanha", color=cor_linha, fontsize=8, va="top")
 
-    # Linha de previsão
     ax1.plot([ultimo_dia, dia_prev], [preco_atual, previsao_amanha],
              color=cor_linha, linewidth=2, linestyle="--", zorder=4)
     ax1.scatter([dia_prev], [previsao_amanha], color=cor_linha, s=140,
@@ -241,18 +259,18 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
                   edgecolor=cor_linha, linewidth=0.8, alpha=0.85)
     )
 
-    ax1.annotate(f"Máx {fmt(preco_max45)}",
+    ax1.annotate(f"Max {fmt(preco_max45)}",
                  xy=(idx_max, preco_max45),
                  xytext=(0, 10), textcoords="offset points",
                  color=MUTED, fontsize=8,
                  arrowprops=dict(arrowstyle="-", color=FAINT, lw=0.8))
-    ax1.annotate(f"Mín {fmt(preco_min45)}",
+    ax1.annotate(f"Min {fmt(preco_min45)}",
                  xy=(idx_min, preco_min45),
                  xytext=(0, -14), textcoords="offset points",
                  color=MUTED, fontsize=8,
                  arrowprops=dict(arrowstyle="-", color=FAINT, lw=0.8))
 
-    ax1.set_ylabel("Preço (USD)", fontsize=9, color=MUTED)
+    ax1.set_ylabel("Preco (USD)", fontsize=9, color=MUTED)
     ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: fmt(x)))
     ax1.grid(True, alpha=0.25)
     ax1.tick_params(labelbottom=False)
@@ -294,8 +312,8 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     fig.text(
         0.08, 0.025,
         f"TrendBot Analytics  ·  Modelo: Prophet + RSI/SMA  ·  "
-        f"Intervalo de confiança: 90%  ·  Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}  ·  "
-        f"Não constitui recomendação de investimento.",
+        f"Intervalo de confianca: 90%  ·  Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}  ·  "
+        f"Nao constitui recomendacao de investimento.",
         fontsize=7, color=FAINT, ha="left"
     )
 
@@ -305,57 +323,57 @@ def gerar_alerta_visual(df_base, previsao_amanha, variacao, moeda, conf_min, con
     plt.close()
     return alerta, nome_arq, emoji
 
-def salvar_dados_dashboard(dados_consolidado):  
 
-    caminho_json = "docs/data.json"    
-
+def salvar_dados_dashboard(dados_consolidado: list[dict]) -> None:
+    caminho_json = "docs/data.json"
     dashboard_data = {
         "ultima_atualizacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
         "ativos": dados_consolidado
     }
-    
+
     with open(caminho_json, 'w', encoding='utf-8') as f:
         json.dump(dashboard_data, f, ensure_ascii=False, indent=4)
-    
+
     logger.info("Arquivo data.json gerado para o Dashboard!")
 
-def carregar_historico():
+
+def carregar_historico() -> list[dict]:
     caminho = "docs/historico.json"
     if os.path.exists(caminho):
         with open(caminho, 'r', encoding='utf-8') as f:
             return json.load(f)
     return []
 
-def salvar_historico(historico):
+
+def salvar_historico(historico: list[dict]) -> None:
     caminho = "docs/historico.json"
     with open(caminho, 'w', encoding='utf-8') as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
     logger.info("Arquivo historico.json atualizado!")
 
-def fluxo_principal():
+
+def fluxo_principal() -> None:
     logger.info("--- INICIANDO CICLO MULTIMOEDAS ---")
-    
+
     moedas = [m.strip() for m in os.getenv("MOEDAS_ALVO", "bitcoin").split(',')]
     dias = int(os.getenv("DIAS_HISTORICO", "365"))
     hoje = datetime.now().strftime('%d/%m/%Y')
-    
-    relatorio_texto = "📊 RELATÓRIO TRENDBOT MULTIMOEDAS 📊\n" + "="*40 + "\n\n"
-    imagens_geradas = []
-    dados_para_json = []
 
-    
+    relatorio_texto = "TREND RELATORIO TRENDBOT MULTIMOEDAS\n" + "="*40 + "\n\n"
+    imagens_geradas: list[str] = []
+    dados_para_json: list[dict] = []
+
     historico = carregar_historico()
 
     for moeda in moedas:
         logger.info(f"Analisando {moeda.upper()}...")
         df = coletar_dados_historicos(coin=moeda, days=dias)
-        
+
         if df is not None and not df.empty:
             preco_hj, prev_amanha, conf_min, conf_max = treinar_e_prever(df)
             var = ((prev_amanha - preco_hj) / preco_hj) * 100
             status, arq, emoji = gerar_alerta_visual(df, prev_amanha, var, moeda, conf_min, conf_max)
 
-            
             for entrada in historico:
                 if entrada['moeda'] == moeda.upper() and entrada.get('preco_real') is None:
                     entrada['preco_real'] = round(preco_hj, 2)
@@ -364,7 +382,6 @@ def fluxo_principal():
                     dentro_intervalo = entrada['confianca_min'] <= preco_hj <= entrada['confianca_max']
                     entrada['acerto'] = '✅' if dentro_intervalo else '❌'
 
-            
             ja_existe = any(
                 e['data'] == hoje and e['moeda'] == moeda.upper()
                 for e in historico
@@ -383,8 +400,8 @@ def fluxo_principal():
             else:
                 logger.info(f"Previsao de {moeda.upper()} para {hoje} ja existe. Pulando append.")
 
-            relatorio_texto += (f"🔹 {moeda.upper()}: {status} {emoji}\n"
-                               f"   Preço: ${preco_hj:,.2f} -> Est.: ${prev_amanha:,.2f} ({var:+.2f}%)\n\n")
+            relatorio_texto += (f"{moeda.upper()}: {status} {emoji}\n"
+                               f"   Preco: ${preco_hj:,.2f} -> Est.: ${prev_amanha:,.2f} ({var:+.2f}%)\n\n")
             imagens_geradas.append(arq)
 
             dados_para_json.append({
@@ -399,26 +416,26 @@ def fluxo_principal():
                 "imagem": arq
             })
         else:
-            relatorio_texto += f"❌ {moeda.upper()}: Erro na coleta.\n\n"
+            relatorio_texto += f"{moeda.upper()}: Erro na coleta.\n\n"
 
     if imagens_geradas:
         salvar_dados_dashboard(dados_para_json)
-        
         historico = historico[-120:]
         salvar_historico(historico)
         enviar_email_consolidado(relatorio_texto, imagens_geradas)
 
-    logger.info("Ciclo concluído.")
+    logger.info("Ciclo concluido.")
+
 
 if __name__ == "__main__":
     fluxo_principal()
 
     if not os.getenv("GITHUB_ACTIONS"):
         horario = os.getenv("HORARIO_RODADA", "10:00")
-        logger.info(f"Modo local: agendando execução diária às {horario}")
+        logger.info(f"Modo local: agendando execucao diaria as {horario}")
         schedule.every().day.at(horario).do(fluxo_principal)
         while True:
             schedule.run_pending()
             time.sleep(60)
     else:
-        logger.info("Ambiente Actions detectado. Encerrando após execução única.")
+        logger.info("Ambiente Actions detectado. Encerrando apos execucao unica.")

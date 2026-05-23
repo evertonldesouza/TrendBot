@@ -12,18 +12,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout do Código
+    - name: Checkout do Codigo
       uses: actions/checkout@v4
-      with:
-        
-        fetch-depth: 0
 
     - name: Configurar Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
 
-    - name: Instalar Dependências
+    - name: Instalar Dependencias
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -33,14 +31,14 @@ jobs:
         EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
         EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
         EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
-        MOEDAS_ALVO: "bitcoin,ethereum,solana,cardano"
-        DIAS_HISTORICO: "365"
+        MOEDAS_ALVO: ${{ vars.MOEDAS_ALVO || 'bitcoin,ethereum,solana,cardano' }}
+        DIAS_HISTORICO: ${{ vars.DIAS_HISTORICO || '365' }}
       run: python trendbot_engine.py
 
     - name: Commit e Push do Dashboard
       run: |
-        git config --global user.name "GitHub Action Bot"
-        git config --global user.email "actions@github.com"
+        git config --global user.name "TrendBot Action"
+        git config --global user.email "trendbot@actions.github.com"
 
         git add docs/data.json
         git add docs/historico.json
@@ -50,5 +48,5 @@ jobs:
           git commit -m "update: dashboard data [skip ci]"
           git push origin main
         else
-          echo "Sem mudanças nos dados. Nada a subir."
+          echo "Sem mudancas nos dados. Nada a subir."
         fi

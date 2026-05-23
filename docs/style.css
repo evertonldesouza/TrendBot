@@ -291,6 +291,7 @@ header h1 i { margin-right: 8px; }
 }
 
 .chart-btn:hover { text-decoration: underline; }
+.chart-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .card-model-label {
     font-size: 0.7rem;
@@ -334,6 +335,7 @@ header h1 i { margin-right: 8px; }
 }
 
 .filter-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.filter-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .filter-btn.active { background: rgba(88,166,255,0.15); border-color: var(--accent); color: var(--accent); }
 
 .table-wrapper { overflow-x: auto; }
