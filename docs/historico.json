@@ -1155,9 +1155,9 @@
         "previsao": 0.24,
         "confianca_min": 0.21,
         "confianca_max": 0.28,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 0.24,
+        "erro": 0.0,
+        "acerto": "✅"
     },
     {
         "data": "26/05/2026",
@@ -1165,9 +1165,9 @@
         "previsao": 77302.84,
         "confianca_min": 74878.76,
         "confianca_max": 79640.0,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 76521.37,
+        "erro": -781.47,
+        "acerto": "✅"
     },
     {
         "data": "26/05/2026",
@@ -1175,9 +1175,9 @@
         "previsao": 2109.32,
         "confianca_min": 1964.64,
         "confianca_max": 2258.75,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2079.35,
+        "erro": -29.97,
+        "acerto": "✅"
     },
     {
         "data": "26/05/2026",
@@ -1185,6 +1185,16 @@
         "previsao": 84.61,
         "confianca_min": 76.49,
         "confianca_max": 93.69,
+        "preco_real": 84.33,
+        "erro": -0.28,
+        "acerto": "✅"
+    },
+    {
+        "data": "26/05/2026",
+        "moeda": "CARDANO",
+        "previsao": 0.24,
+        "confianca_min": 0.21,
+        "confianca_max": 0.28,
         "preco_real": null,
         "erro": null,
         "acerto": null
