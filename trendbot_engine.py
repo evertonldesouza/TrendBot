@@ -114,6 +114,7 @@ def gerar_alerta_visual(
     moeda: str,
     conf_min: float,
     conf_max: float,
+    output_dir: str = "docs",
 ) -> tuple[str, str, str]:
     if variacao > 1.0:
         alerta, cor_linha, emoji = "COMPRA FORTE", "#3fb950", "🚀"
@@ -318,7 +319,8 @@ def gerar_alerta_visual(
     )
 
     nome_arq    = f"alerta_{moeda}.png"
-    caminho_arq = f"docs/{nome_arq}"
+    os.makedirs(output_dir, exist_ok=True)
+    caminho_arq = os.path.join(output_dir, nome_arq)
     plt.savefig(caminho_arq, dpi=130, bbox_inches="tight", facecolor=BG)
     plt.close()
     return alerta, nome_arq, emoji

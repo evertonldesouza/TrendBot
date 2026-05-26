@@ -51,7 +51,7 @@ def test_treino_e_previsao_retorna_valores(df_exemplo):
     assert previsao > 0
 
 
-def test_gerar_alerta_visual_compra_forte(df_exemplo):
+def test_gerar_alerta_visual_compra_forte(df_exemplo, tmp_path):
     moeda = "bitcoin"
     preco_atual = df_exemplo["Preco_USD"].iloc[-1]
     previsao = preco_atual * 1.02
@@ -60,14 +60,14 @@ def test_gerar_alerta_visual_compra_forte(df_exemplo):
     conf_max = preco_atual * 1.06
 
     alerta, nome_arq, emoji = gerar_alerta_visual(
-        df_exemplo, previsao, variacao, moeda, conf_min, conf_max
+        df_exemplo, previsao, variacao, moeda, conf_min, conf_max, output_dir=str(tmp_path)
     )
     assert alerta == "COMPRA FORTE"
     assert "🚀" in emoji
-    assert nome_arq == "alerta_bitcoin.png"
+    assert (tmp_path / nome_arq).exists()
 
 
-def test_gerar_alerta_visual_venda(df_exemplo):
+def test_gerar_alerta_visual_venda(df_exemplo, tmp_path):
     moeda = "bitcoin"
     preco_atual = df_exemplo["Preco_USD"].iloc[-1]
     previsao = preco_atual * 0.97
@@ -76,14 +76,14 @@ def test_gerar_alerta_visual_venda(df_exemplo):
     conf_max = preco_atual * 1.02
 
     alerta, nome_arq, emoji = gerar_alerta_visual(
-        df_exemplo, previsao, variacao, moeda, conf_min, conf_max
+        df_exemplo, previsao, variacao, moeda, conf_min, conf_max, output_dir=str(tmp_path)
     )
     assert alerta == "VENDA"
     assert "🚨" in emoji
-    assert nome_arq == "alerta_bitcoin.png"
+    assert (tmp_path / nome_arq).exists()
 
 
-def test_gerar_alerta_visual_neutro(df_exemplo):
+def test_gerar_alerta_visual_neutro(df_exemplo, tmp_path):
     moeda = "bitcoin"
     preco_atual = df_exemplo["Preco_USD"].iloc[-1]
     previsao = preco_atual * 0.995
@@ -92,13 +92,14 @@ def test_gerar_alerta_visual_neutro(df_exemplo):
     conf_max = preco_atual * 1.05
 
     alerta, nome_arq, emoji = gerar_alerta_visual(
-        df_exemplo, previsao, variacao, moeda, conf_min, conf_max
+        df_exemplo, previsao, variacao, moeda, conf_min, conf_max, output_dir=str(tmp_path)
     )
     assert alerta == "NEUTRO"
     assert "⚖️" in emoji
+    assert (tmp_path / nome_arq).exists()
 
 
-def test_gerar_alerta_visual_alta_leve(df_exemplo):
+def test_gerar_alerta_visual_alta_leve(df_exemplo, tmp_path):
     moeda = "ethereum"
     preco_atual = df_exemplo["Preco_USD"].iloc[-1]
     previsao = preco_atual * 1.005
@@ -107,11 +108,11 @@ def test_gerar_alerta_visual_alta_leve(df_exemplo):
     conf_max = preco_atual * 1.03
 
     alerta, nome_arq, emoji = gerar_alerta_visual(
-        df_exemplo, previsao, variacao, moeda, conf_min, conf_max
+        df_exemplo, previsao, variacao, moeda, conf_min, conf_max, output_dir=str(tmp_path)
     )
     assert alerta == "ALTA LEVE"
     assert "⬆️" in emoji
-    assert nome_arq == "alerta_ethereum.png"
+    assert (tmp_path / nome_arq).exists()
 
 
 def test_carregar_historico_arquivo_inexistente(tmp_path):
@@ -181,7 +182,7 @@ def test_salvar_dados_dashboard(tmp_path):
         os.chdir(original)
 
 
-def test_formato_preco_na_geracao_grafico(df_exemplo):
+def test_formato_preco_na_geracao_grafico(df_exemplo, tmp_path):
     moeda = "cardano"
     preco_atual = df_exemplo["Preco_USD"].iloc[-1]
     previsao = preco_atual * 0.995
@@ -190,6 +191,6 @@ def test_formato_preco_na_geracao_grafico(df_exemplo):
     conf_max = preco_atual * 1.07
 
     alerta, nome_arq, emoji = gerar_alerta_visual(
-        df_exemplo, previsao, variacao, moeda, conf_min, conf_max
+        df_exemplo, previsao, variacao, moeda, conf_min, conf_max, output_dir=str(tmp_path)
     )
-    assert nome_arq == "alerta_cardano.png"
+    assert (tmp_path / nome_arq).exists()
