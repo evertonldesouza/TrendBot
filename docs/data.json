@@ -1,38 +1,49 @@
 {
-    "ultima_atualizacao": "28/05/2026 16:56",
+    "ultima_atualizacao": "29/05/2026 16:43",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "73,261.58",
-            "previsao": "73,294.88",
-            "confianca_min": "70,854.91",
-            "confianca_max": "75,835.26",
-            "variacao": "+0.05",
+            "preco": "73,944.86",
+            "previsao": "74,091.69",
+            "confianca_min": "71,719.49",
+            "confianca_max": "76,517.52",
+            "variacao": "+0.20",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,008.96",
-            "previsao": "2,013.46",
-            "confianca_min": "1,873.90",
-            "confianca_max": "2,141.91",
-            "variacao": "+0.22",
+            "preco": "2,037.67",
+            "previsao": "2,041.83",
+            "confianca_min": "1,913.89",
+            "confianca_max": "2,163.77",
+            "variacao": "+0.20",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "81.84",
-            "previsao": "81.09",
-            "confianca_min": "71.93",
-            "confianca_max": "89.62",
-            "variacao": "-0.91",
+            "preco": "82.86",
+            "previsao": "82.53",
+            "confianca_min": "73.93",
+            "confianca_max": "91.14",
+            "variacao": "-0.40",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_solana.png"
+        },
+        {
+            "moeda": "CARDANO",
+            "preco": "0.24",
+            "previsao": "0.23",
+            "confianca_min": "0.20",
+            "confianca_max": "0.26",
+            "variacao": "-0.94",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
+            "imagem": "alerta_cardano.png"
         }
     ]
 }
