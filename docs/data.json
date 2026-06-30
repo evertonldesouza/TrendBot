@@ -1,49 +1,38 @@
 {
-    "ultima_atualizacao": "28/06/2026 14:50",
+    "ultima_atualizacao": "30/06/2026 15:34",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "60,042.53",
-            "previsao": "60,451.95",
-            "confianca_min": "56,261.64",
-            "confianca_max": "64,695.21",
-            "variacao": "+0.68",
+            "preco": "58,321.17",
+            "previsao": "58,500.88",
+            "confianca_min": "54,310.20",
+            "confianca_max": "62,553.64",
+            "variacao": "+0.31",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "1,581.82",
-            "previsao": "1,588.27",
-            "confianca_min": "1,385.99",
-            "confianca_max": "1,802.19",
-            "variacao": "+0.41",
+            "preco": "1,563.65",
+            "previsao": "1,577.07",
+            "confianca_min": "1,362.64",
+            "confianca_max": "1,782.09",
+            "variacao": "+0.86",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "71.79",
-            "previsao": "71.88",
-            "confianca_min": "62.00",
-            "confianca_max": "81.91",
-            "variacao": "+0.13",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "73.17",
+            "previsao": "74.06",
+            "confianca_min": "63.96",
+            "confianca_max": "84.62",
+            "variacao": "+1.23",
+            "status": "COMPRA FORTE",
+            "emoji": "🚀",
             "imagem": "alerta_solana.png"
-        },
-        {
-            "moeda": "CARDANO",
-            "preco": "0.14",
-            "previsao": "0.15",
-            "confianca_min": "0.11",
-            "confianca_max": "0.18",
-            "variacao": "+0.48",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
-            "imagem": "alerta_cardano.png"
         }
     ]
 }
