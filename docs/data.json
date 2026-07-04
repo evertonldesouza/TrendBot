@@ -1,23 +1,23 @@
 {
-    "ultima_atualizacao": "03/07/2026 15:14",
+    "ultima_atualizacao": "04/07/2026 14:40",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "62,254.09",
-            "previsao": "62,456.00",
-            "confianca_min": "58,276.34",
-            "confianca_max": "66,682.06",
-            "variacao": "+0.32",
+            "preco": "62,584.72",
+            "previsao": "62,640.03",
+            "confianca_min": "58,192.19",
+            "confianca_max": "66,993.09",
+            "variacao": "+0.09",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "1,741.60",
-            "previsao": "1,741.74",
-            "confianca_min": "1,544.55",
-            "confianca_max": "1,939.27",
+            "preco": "1,767.44",
+            "previsao": "1,767.62",
+            "confianca_min": "1,577.50",
+            "confianca_max": "1,954.80",
             "variacao": "+0.01",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
@@ -25,14 +25,25 @@
         },
         {
             "moeda": "SOLANA",
-            "preco": "81.71",
-            "previsao": "81.46",
+            "preco": "81.61",
+            "previsao": "81.80",
             "confianca_min": "70.98",
-            "confianca_max": "91.77",
-            "variacao": "-0.31",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
+            "confianca_max": "91.98",
+            "variacao": "+0.23",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
             "imagem": "alerta_solana.png"
+        },
+        {
+            "moeda": "CARDANO",
+            "preco": "0.18",
+            "previsao": "0.18",
+            "confianca_min": "0.14",
+            "confianca_max": "0.22",
+            "variacao": "+1.80",
+            "status": "COMPRA FORTE",
+            "emoji": "🚀",
+            "imagem": "alerta_cardano.png"
         }
     ]
 }
