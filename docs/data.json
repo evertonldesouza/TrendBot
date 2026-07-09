@@ -1,38 +1,49 @@
 {
-    "ultima_atualizacao": "08/07/2026 15:24",
+    "ultima_atualizacao": "09/07/2026 15:58",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "61,570.38",
-            "previsao": "61,287.18",
-            "confianca_min": "57,141.61",
-            "confianca_max": "65,277.48",
-            "variacao": "-0.46",
+            "preco": "62,831.62",
+            "previsao": "62,599.10",
+            "confianca_min": "58,883.36",
+            "confianca_max": "66,357.16",
+            "variacao": "-0.37",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "1,717.63",
-            "previsao": "1,703.57",
-            "confianca_min": "1,502.19",
-            "confianca_max": "1,890.20",
-            "variacao": "-0.82",
+            "preco": "1,737.97",
+            "previsao": "1,733.94",
+            "confianca_min": "1,537.18",
+            "confianca_max": "1,916.27",
+            "variacao": "-0.23",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "76.53",
-            "previsao": "76.07",
-            "confianca_min": "65.85",
-            "confianca_max": "86.63",
-            "variacao": "-0.60",
+            "preco": "77.57",
+            "previsao": "76.93",
+            "confianca_min": "66.98",
+            "confianca_max": "88.22",
+            "variacao": "-0.83",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_solana.png"
+        },
+        {
+            "moeda": "CARDANO",
+            "preco": "0.17",
+            "previsao": "0.16",
+            "confianca_min": "0.12",
+            "confianca_max": "0.21",
+            "variacao": "-1.44",
+            "status": "VENDA",
+            "emoji": "🚨",
+            "imagem": "alerta_cardano.png"
         }
     ]
 }
