@@ -1,35 +1,5 @@
 [
     {
-        "data": "07/06/2026",
-        "moeda": "BITCOIN",
-        "previsao": 62860.21,
-        "confianca_min": 60211.72,
-        "confianca_max": 65550.63,
-        "preco_real": 63594.32,
-        "erro": 734.11,
-        "acerto": "✅"
-    },
-    {
-        "data": "07/06/2026",
-        "moeda": "ETHEREUM",
-        "previsao": 1630.92,
-        "confianca_min": 1498.61,
-        "confianca_max": 1764.65,
-        "preco_real": 1690.4,
-        "erro": 59.48,
-        "acerto": "✅"
-    },
-    {
-        "data": "07/06/2026",
-        "moeda": "SOLANA",
-        "previsao": 65.39,
-        "confianca_min": 56.53,
-        "confianca_max": 74.07,
-        "preco_real": 67.14,
-        "erro": 1.75,
-        "acerto": "✅"
-    },
-    {
         "data": "08/06/2026",
         "moeda": "BITCOIN",
         "previsao": 63709.61,
@@ -1175,9 +1145,9 @@
         "previsao": 62257.4,
         "confianca_min": 58472.67,
         "confianca_max": 65900.64,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 63958.46,
+        "erro": 1701.06,
+        "acerto": "✅"
     },
     {
         "data": "13/07/2026",
@@ -1185,9 +1155,9 @@
         "previsao": 1762.28,
         "confianca_min": 1593.96,
         "confianca_max": 1920.64,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 1873.02,
+        "erro": 110.74,
+        "acerto": "✅"
     },
     {
         "data": "13/07/2026",
@@ -1195,6 +1165,36 @@
         "previsao": 75.23,
         "confianca_min": 65.07,
         "confianca_max": 85.66,
+        "preco_real": 77.01,
+        "erro": 1.78,
+        "acerto": "✅"
+    },
+    {
+        "data": "14/07/2026",
+        "moeda": "BITCOIN",
+        "previsao": 63843.09,
+        "confianca_min": 60424.52,
+        "confianca_max": 66771.27,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "14/07/2026",
+        "moeda": "ETHEREUM",
+        "previsao": 1875.96,
+        "confianca_min": 1694.38,
+        "confianca_max": 2039.82,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "14/07/2026",
+        "moeda": "SOLANA",
+        "previsao": 77.9,
+        "confianca_min": 68.33,
+        "confianca_max": 88.36,
         "preco_real": null,
         "erro": null,
         "acerto": null
