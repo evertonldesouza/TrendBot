@@ -1,37 +1,37 @@
 {
-    "ultima_atualizacao": "28/07/2026 15:24",
+    "ultima_atualizacao": "29/07/2026 15:10",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "63,515.67",
-            "previsao": "63,293.42",
-            "confianca_min": "60,545.84",
-            "confianca_max": "65,716.24",
-            "variacao": "-0.35",
+            "preco": "64,073.08",
+            "previsao": "63,580.88",
+            "confianca_min": "60,934.00",
+            "confianca_max": "66,133.85",
+            "variacao": "-0.77",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "1,896.56",
-            "previsao": "1,897.31",
-            "confianca_min": "1,756.85",
-            "confianca_max": "2,047.23",
-            "variacao": "+0.04",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "1,895.05",
+            "previsao": "1,875.33",
+            "confianca_min": "1,716.47",
+            "confianca_max": "2,020.37",
+            "variacao": "-1.04",
+            "status": "VENDA",
+            "emoji": "🚨",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "73.79",
-            "previsao": "74.42",
-            "confianca_min": "64.70",
-            "confianca_max": "84.50",
-            "variacao": "+0.86",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "73.29",
+            "previsao": "72.93",
+            "confianca_min": "63.80",
+            "confianca_max": "81.53",
+            "variacao": "-0.50",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "imagem": "alerta_solana.png"
         }
     ]
