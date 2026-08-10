@@ -1,49 +1,38 @@
 {
-    "ultima_atualizacao": "09/08/2026 13:52",
+    "ultima_atualizacao": "10/08/2026 14:21",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "65,168.77",
-            "previsao": "65,167.74",
-            "confianca_min": "62,291.59",
-            "confianca_max": "67,907.01",
-            "variacao": "-0.00",
+            "preco": "64,680.62",
+            "previsao": "64,362.99",
+            "confianca_min": "61,135.00",
+            "confianca_max": "67,415.17",
+            "variacao": "-0.49",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "1,921.56",
-            "previsao": "1,914.97",
-            "confianca_min": "1,772.81",
-            "confianca_max": "2,083.35",
-            "variacao": "-0.34",
+            "preco": "1,898.32",
+            "previsao": "1,880.93",
+            "confianca_min": "1,741.12",
+            "confianca_max": "2,040.84",
+            "variacao": "-0.92",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "76.60",
-            "previsao": "76.65",
-            "confianca_min": "67.49",
-            "confianca_max": "85.76",
-            "variacao": "+0.07",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
-            "imagem": "alerta_solana.png"
-        },
-        {
-            "moeda": "CARDANO",
-            "preco": "0.20",
-            "previsao": "0.20",
-            "confianca_min": "0.17",
-            "confianca_max": "0.23",
-            "variacao": "-0.21",
+            "preco": "76.50",
+            "previsao": "75.75",
+            "confianca_min": "65.95",
+            "confianca_max": "85.34",
+            "variacao": "-0.97",
             "status": "NEUTRO",
             "emoji": "⚖️",
-            "imagem": "alerta_cardano.png"
+            "imagem": "alerta_solana.png"
         }
     ]
 }
