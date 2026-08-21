@@ -1,38 +1,49 @@
 {
-    "ultima_atualizacao": "20/08/2026 13:50",
+    "ultima_atualizacao": "21/08/2026 13:48",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "71,525.17",
-            "previsao": "71,115.85",
-            "confianca_min": "67,575.90",
-            "confianca_max": "74,830.15",
-            "variacao": "-0.57",
+            "preco": "77,280.70",
+            "previsao": "77,129.65",
+            "confianca_min": "74,272.01",
+            "confianca_max": "80,115.31",
+            "variacao": "-0.20",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,272.65",
-            "previsao": "2,251.63",
-            "confianca_min": "2,056.84",
-            "confianca_max": "2,427.59",
-            "variacao": "-0.92",
+            "preco": "2,395.29",
+            "previsao": "2,390.64",
+            "confianca_min": "2,201.73",
+            "confianca_max": "2,589.10",
+            "variacao": "-0.19",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "86.62",
-            "previsao": "86.03",
-            "confianca_min": "76.07",
-            "confianca_max": "96.36",
-            "variacao": "-0.67",
+            "preco": "90.93",
+            "previsao": "90.58",
+            "confianca_min": "81.32",
+            "confianca_max": "100.24",
+            "variacao": "-0.39",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_solana.png"
+        },
+        {
+            "moeda": "CARDANO",
+            "preco": "0.22",
+            "previsao": "0.21",
+            "confianca_min": "0.18",
+            "confianca_max": "0.25",
+            "variacao": "-0.57",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
+            "imagem": "alerta_cardano.png"
         }
     ]
 }
