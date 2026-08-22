@@ -1,49 +1,38 @@
 {
-    "ultima_atualizacao": "21/08/2026 13:48",
+    "ultima_atualizacao": "22/08/2026 13:34",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "77,280.70",
-            "previsao": "77,129.65",
-            "confianca_min": "74,272.01",
-            "confianca_max": "80,115.31",
-            "variacao": "-0.20",
+            "preco": "77,172.91",
+            "previsao": "76,982.29",
+            "confianca_min": "73,710.85",
+            "confianca_max": "80,278.38",
+            "variacao": "-0.25",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,395.29",
-            "previsao": "2,390.64",
-            "confianca_min": "2,201.73",
-            "confianca_max": "2,589.10",
-            "variacao": "-0.19",
+            "preco": "2,427.38",
+            "previsao": "2,424.31",
+            "confianca_min": "2,241.17",
+            "confianca_max": "2,610.63",
+            "variacao": "-0.13",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "90.93",
-            "previsao": "90.58",
-            "confianca_min": "81.32",
-            "confianca_max": "100.24",
-            "variacao": "-0.39",
+            "preco": "93.84",
+            "previsao": "93.59",
+            "confianca_min": "84.85",
+            "confianca_max": "102.54",
+            "variacao": "-0.26",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "imagem": "alerta_solana.png"
-        },
-        {
-            "moeda": "CARDANO",
-            "preco": "0.22",
-            "previsao": "0.21",
-            "confianca_min": "0.18",
-            "confianca_max": "0.25",
-            "variacao": "-0.57",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
-            "imagem": "alerta_cardano.png"
         }
     ]
 }
