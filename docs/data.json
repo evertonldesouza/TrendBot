@@ -1,38 +1,49 @@
 {
-    "ultima_atualizacao": "29/08/2026 17:02",
+    "ultima_atualizacao": "30/08/2026 17:15",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "78,017.29",
-            "previsao": "77,953.14",
-            "confianca_min": "75,266.69",
-            "confianca_max": "80,711.16",
-            "variacao": "-0.08",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
+            "preco": "79,158.76",
+            "previsao": "79,365.63",
+            "confianca_min": "76,530.66",
+            "confianca_max": "82,280.63",
+            "variacao": "+0.26",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,450.80",
-            "previsao": "2,450.16",
-            "confianca_min": "2,300.31",
-            "confianca_max": "2,605.98",
-            "variacao": "-0.03",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
+            "preco": "2,522.57",
+            "previsao": "2,530.22",
+            "confianca_min": "2,380.47",
+            "confianca_max": "2,675.60",
+            "variacao": "+0.30",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "104.89",
-            "previsao": "104.58",
-            "confianca_min": "94.28",
-            "confianca_max": "114.49",
-            "variacao": "-0.30",
-            "status": "NEUTRO",
-            "emoji": "⚖️",
+            "preco": "106.57",
+            "previsao": "106.99",
+            "confianca_min": "97.84",
+            "confianca_max": "115.88",
+            "variacao": "+0.40",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
             "imagem": "alerta_solana.png"
+        },
+        {
+            "moeda": "CARDANO",
+            "preco": "0.21",
+            "previsao": "0.21",
+            "confianca_min": "0.17",
+            "confianca_max": "0.24",
+            "variacao": "+0.17",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
+            "imagem": "alerta_cardano.png"
         }
     ]
 }
