@@ -1,45 +1,5 @@
 [
     {
-        "data": "25/07/2026",
-        "moeda": "BITCOIN",
-        "previsao": 63852.77,
-        "confianca_min": 61090.55,
-        "confianca_max": 66640.04,
-        "preco_real": 64600.0,
-        "erro": 747.23,
-        "acerto": "✅"
-    },
-    {
-        "data": "25/07/2026",
-        "moeda": "ETHEREUM",
-        "previsao": 1852.85,
-        "confianca_min": 1707.11,
-        "confianca_max": 2000.83,
-        "preco_real": 1891.93,
-        "erro": 39.08,
-        "acerto": "✅"
-    },
-    {
-        "data": "25/07/2026",
-        "moeda": "SOLANA",
-        "previsao": 73.91,
-        "confianca_min": 63.8,
-        "confianca_max": 83.94,
-        "preco_real": 74.88,
-        "erro": 0.97,
-        "acerto": "✅"
-    },
-    {
-        "data": "26/07/2026",
-        "moeda": "BITCOIN",
-        "previsao": 64571.83,
-        "confianca_min": 61936.45,
-        "confianca_max": 67584.19,
-        "preco_real": 64507.17,
-        "erro": -64.66,
-        "acerto": "✅"
-    },
-    {
         "data": "26/07/2026",
         "moeda": "ETHEREUM",
         "previsao": 1880.29,
@@ -1165,9 +1125,9 @@
         "previsao": 79365.63,
         "confianca_min": 76530.66,
         "confianca_max": 82280.63,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 79067.12,
+        "erro": -298.51,
+        "acerto": "✅"
     },
     {
         "data": "30/08/2026",
@@ -1175,9 +1135,9 @@
         "previsao": 2530.22,
         "confianca_min": 2380.47,
         "confianca_max": 2675.6,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2484.67,
+        "erro": -45.55,
+        "acerto": "✅"
     },
     {
         "data": "30/08/2026",
@@ -1185,9 +1145,9 @@
         "previsao": 106.99,
         "confianca_min": 97.84,
         "confianca_max": 115.88,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 104.14,
+        "erro": -2.85,
+        "acerto": "✅"
     },
     {
         "data": "30/08/2026",
@@ -1195,6 +1155,46 @@
         "previsao": 0.21,
         "confianca_min": 0.17,
         "confianca_max": 0.24,
+        "preco_real": 0.2,
+        "erro": -0.01,
+        "acerto": "✅"
+    },
+    {
+        "data": "31/08/2026",
+        "moeda": "BITCOIN",
+        "previsao": 78921.12,
+        "confianca_min": 76556.7,
+        "confianca_max": 81605.68,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "31/08/2026",
+        "moeda": "ETHEREUM",
+        "previsao": 2478.87,
+        "confianca_min": 2315.51,
+        "confianca_max": 2650.93,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "31/08/2026",
+        "moeda": "SOLANA",
+        "previsao": 103.68,
+        "confianca_min": 94.28,
+        "confianca_max": 113.94,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "31/08/2026",
+        "moeda": "CARDANO",
+        "previsao": 0.2,
+        "confianca_min": 0.16,
+        "confianca_max": 0.23,
         "preco_real": null,
         "erro": null,
         "acerto": null
