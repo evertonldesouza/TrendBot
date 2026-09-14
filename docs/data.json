@@ -1,49 +1,38 @@
 {
-    "ultima_atualizacao": "13/09/2026 16:53",
+    "ultima_atualizacao": "14/09/2026 18:26",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "77,227.40",
-            "previsao": "77,529.48",
-            "confianca_min": "74,167.51",
-            "confianca_max": "80,724.75",
-            "variacao": "+0.39",
+            "preco": "79,206.44",
+            "previsao": "79,331.34",
+            "confianca_min": "76,260.04",
+            "confianca_max": "82,378.82",
+            "variacao": "+0.16",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,502.67",
-            "previsao": "2,514.76",
-            "confianca_min": "2,380.57",
-            "confianca_max": "2,658.53",
-            "variacao": "+0.48",
+            "preco": "2,538.70",
+            "previsao": "2,539.88",
+            "confianca_min": "2,397.60",
+            "confianca_max": "2,682.07",
+            "variacao": "+0.05",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "100.67",
-            "previsao": "101.03",
-            "confianca_min": "92.01",
-            "confianca_max": "110.34",
-            "variacao": "+0.36",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "103.34",
+            "previsao": "103.08",
+            "confianca_min": "93.65",
+            "confianca_max": "112.83",
+            "variacao": "-0.25",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "imagem": "alerta_solana.png"
-        },
-        {
-            "moeda": "CARDANO",
-            "preco": "0.21",
-            "previsao": "0.21",
-            "confianca_min": "0.18",
-            "confianca_max": "0.24",
-            "variacao": "+1.17",
-            "status": "COMPRA FORTE",
-            "emoji": "🚀",
-            "imagem": "alerta_cardano.png"
         }
     ]
 }
