@@ -1,38 +1,49 @@
 {
-    "ultima_atualizacao": "10/10/2026 17:42",
+    "ultima_atualizacao": "11/10/2026 17:56",
     "ativos": [
         {
             "moeda": "BITCOIN",
-            "preco": "83,063.20",
-            "previsao": "83,288.43",
-            "confianca_min": "80,691.43",
-            "confianca_max": "85,833.51",
-            "variacao": "+0.27",
+            "preco": "83,877.41",
+            "previsao": "84,429.78",
+            "confianca_min": "81,526.68",
+            "confianca_max": "87,356.24",
+            "variacao": "+0.66",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_bitcoin.png"
         },
         {
             "moeda": "ETHEREUM",
-            "preco": "2,506.65",
-            "previsao": "2,515.24",
-            "confianca_min": "2,397.90",
-            "confianca_max": "2,633.23",
-            "variacao": "+0.34",
+            "preco": "2,541.91",
+            "previsao": "2,561.61",
+            "confianca_min": "2,433.00",
+            "confianca_max": "2,695.62",
+            "variacao": "+0.78",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_ethereum.png"
         },
         {
             "moeda": "SOLANA",
-            "preco": "109.98",
-            "previsao": "110.45",
-            "confianca_min": "102.15",
-            "confianca_max": "118.85",
-            "variacao": "+0.43",
+            "preco": "112.37",
+            "previsao": "113.25",
+            "confianca_min": "104.22",
+            "confianca_max": "121.57",
+            "variacao": "+0.79",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "imagem": "alerta_solana.png"
+        },
+        {
+            "moeda": "CARDANO",
+            "preco": "0.25",
+            "previsao": "0.26",
+            "confianca_min": "0.23",
+            "confianca_max": "0.28",
+            "variacao": "+0.69",
+            "status": "ALTA LEVE",
+            "emoji": "⬆️",
+            "imagem": "alerta_cardano.png"
         }
     ]
 }
