@@ -1,35 +1,5 @@
 [
     {
-        "data": "10/09/2026",
-        "moeda": "SOLANA",
-        "previsao": 99.23,
-        "confianca_min": 89.48,
-        "confianca_max": 108.71,
-        "preco_real": 102.23,
-        "erro": 3.0,
-        "acerto": "✅"
-    },
-    {
-        "data": "11/09/2026",
-        "moeda": "BITCOIN",
-        "previsao": 78081.04,
-        "confianca_min": 74953.53,
-        "confianca_max": 81091.35,
-        "preco_real": 77383.21,
-        "erro": -697.83,
-        "acerto": "✅"
-    },
-    {
-        "data": "11/09/2026",
-        "moeda": "ETHEREUM",
-        "previsao": 2587.14,
-        "confianca_min": 2429.35,
-        "confianca_max": 2734.82,
-        "preco_real": 2535.47,
-        "erro": -51.67,
-        "acerto": "✅"
-    },
-    {
         "data": "11/09/2026",
         "moeda": "SOLANA",
         "previsao": 102.16,
@@ -1175,9 +1145,9 @@
         "previsao": 82653.34,
         "confianca_min": 80431.92,
         "confianca_max": 85093.83,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 81154.69,
+        "erro": -1498.65,
+        "acerto": "✅"
     },
     {
         "data": "15/10/2026",
@@ -1185,9 +1155,9 @@
         "previsao": 2454.8,
         "confianca_min": 2347.98,
         "confianca_max": 2562.84,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2416.47,
+        "erro": -38.33,
+        "acerto": "✅"
     },
     {
         "data": "15/10/2026",
@@ -1195,6 +1165,36 @@
         "previsao": 106.78,
         "confianca_min": 99.16,
         "confianca_max": 114.12,
+        "preco_real": 103.55,
+        "erro": -3.23,
+        "acerto": "✅"
+    },
+    {
+        "data": "16/10/2026",
+        "moeda": "BITCOIN",
+        "previsao": 81595.39,
+        "confianca_min": 79593.47,
+        "confianca_max": 83743.69,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "16/10/2026",
+        "moeda": "ETHEREUM",
+        "previsao": 2436.06,
+        "confianca_min": 2341.31,
+        "confianca_max": 2539.83,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "16/10/2026",
+        "moeda": "SOLANA",
+        "previsao": 104.48,
+        "confianca_min": 97.9,
+        "confianca_max": 111.03,
         "preco_real": null,
         "erro": null,
         "acerto": null
