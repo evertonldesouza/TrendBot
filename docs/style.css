@@ -445,3 +445,80 @@ footer {
     color: var(--accent);
 }
 .fonte-banner strong { font-weight: 700; }
+
+/* ---- Controles do histórico (filtros + paginação) ---- */
+.hist-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+    margin: 0 0 1rem 0;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.hist-field { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.hist-field label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+}
+
+.hist-field select {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.hist-field select:focus-visible,
+.pag-btn:focus-visible,
+.filter-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.hist-contagem {
+    margin-left: auto;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    align-self: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.paginacao {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 1rem;
+}
+
+.pag-btn {
+    min-width: 2.1rem;
+    padding: 0.35rem 0.6rem;
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+}
+
+.pag-btn:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.pag-btn[aria-current="page"] { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
+.pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pag-ellipsis { color: var(--text-faint); padding: 0 0.25rem; user-select: none; }
+
+@media (max-width: 640px) {
+    .hist-controls { gap: 0.6rem; }
+    .hist-contagem { margin-left: 0; width: 100%; }
+}

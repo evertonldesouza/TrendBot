@@ -22,7 +22,8 @@ function calcPrecisao(historico) {
 }
 
 function acertosPorMoeda(historico, moeda) {
-    const filtrado = historico.filter(h => h.moeda === moeda && h.acerto !== null);
+    const alvo = moedaCanonica(moeda);
+    const filtrado = historico.filter(h => moedaCanonica(h.moeda) === alvo && h.acerto !== null);
     const acertos  = filtrado.filter(h => h.acerto === '\u2705').length;
     return { acertos, total: filtrado.length };
 }
@@ -205,79 +206,337 @@ function renderCards(data, historico) {
     });
 }
 
+/* ---------------------------------------------------------------------------
+ * Moeda canônica
+ *
+ * historico.json acumula dois padrões de nome: o legado ("BITCOIN",
+ * "ETHEREUM" ...) e o atual ("BTC", "ETH" ...). Sem unificar, o filtro mostra
+ * o mesmo ativo duas vezes e — pior — a precisão por moeda dos cards fica
+ * zerada, porque data.json usa "BTC" e o histórico antigo usa "BITCOIN".
+ * ------------------------------------------------------------------------- */
+const MOEDAS_CANONICAS = {
+    BTC: { nome: 'Bitcoin',  aliases: ['BTC', 'BITCOIN'] },
+    ETH: { nome: 'Ethereum', aliases: ['ETH', 'ETHEREUM', 'ETHER'] },
+    SOL: { nome: 'Solana',   aliases: ['SOL', 'SOLANA'] },
+    ADA: { nome: 'Cardano',  aliases: ['ADA', 'CARDANO'] },
+};
+
+const _ALIAS_PARA_CANONICA = (() => {
+    const mapa = {};
+    for (const canonica of Object.keys(MOEDAS_CANONICAS)) {
+        for (const apelido of MOEDAS_CANONICAS[canonica].aliases) {
+            mapa[apelido] = canonica;
+        }
+    }
+    return mapa;
+})();
+
+function moedaCanonica(moeda) {
+    const chave = String(moeda === null || moeda === undefined ? '' : moeda).trim().toUpperCase();
+    return _ALIAS_PARA_CANONICA[chave] || chave;
+}
+
+function nomeMoeda(moeda) {
+    const canonica = moedaCanonica(moeda);
+    return MOEDAS_CANONICAS[canonica]
+        ? MOEDAS_CANONICAS[canonica].nome
+        : canonica.charAt(0) + canonica.slice(1).toLowerCase();
+}
+
 let historicoGlobal = [];
-let filtroAtivo = 'TODOS';
+
+const estadoHistorico = {
+    moeda: 'TODOS',
+    resultado: 'TODOS',
+    periodo: 'TODOS',
+    ordem: 'recente',
+    pagina: 1,
+    porPagina: 25,
+};
+
+/** "dd/mm/aaaa" — parseDataBR exige a hora e não serve para o histórico. */
+function parseDataHistorico(str) {
+    const p = String(str || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!p) return null;
+    return new Date(Number(p[3]), Number(p[2]) - 1, Number(p[1]));
+}
+
+/** Erro absoluto em % do preço real, ou null quando ainda não há resultado. */
+function erroPercentual(h) {
+    if (h.erro === null || h.erro === undefined || !h.preco_real) return null;
+    return Math.abs(h.erro / h.preco_real) * 100;
+}
+
+function historicoFiltrado() {
+    const agora = new Date();
+
+    const dados = historicoGlobal.filter(h => {
+        if (estadoHistorico.moeda !== 'TODOS' &&
+            moedaCanonica(h.moeda) !== estadoHistorico.moeda) return false;
+
+        if (estadoHistorico.resultado === 'PENDENTE' && h.acerto !== null) return false;
+        if (estadoHistorico.resultado === 'ACERTO' && h.acerto !== '\u2705') return false;
+        if (estadoHistorico.resultado === 'ERRO' && h.acerto !== '\u274C') return false;
+
+        if (estadoHistorico.periodo !== 'TODOS') {
+            const data = parseDataHistorico(h.data);
+            if (!data) return false;
+            const dias = (agora - data) / 86400000;
+            if (dias > Number(estadoHistorico.periodo)) return false;
+        }
+        return true;
+    });
+
+    dados.sort((a, b) => {
+        if (estadoHistorico.ordem === 'erro') {
+            const ea = erroPercentual(a), eb = erroPercentual(b);
+            if (ea === null && eb === null) return 0;
+            if (ea === null) return 1;   // sem resultado vai para o fim
+            if (eb === null) return -1;
+            return eb - ea;
+        }
+        const da = parseDataHistorico(a.data), db = parseDataHistorico(b.data);
+        const ta = da ? da.getTime() : 0, tb = db ? db.getTime() : 0;
+        return estadoHistorico.ordem === 'antigo' ? ta - tb : tb - ta;
+    });
+
+    return dados;
+}
+
+function linhaHistorico(h) {
+    let chipHtml, chipClass;
+    if (h.acerto === null) {
+        chipClass = 'chip-pending'; chipHtml = '<i class="fas fa-clock" aria-hidden="true"></i> Aguardando';
+    } else if (h.acerto === '\u2705') {
+        chipClass = 'chip-ok'; chipHtml = '<i class="fas fa-check" aria-hidden="true"></i> Dentro do intervalo';
+    } else {
+        chipClass = 'chip-err'; chipHtml = '<i class="fas fa-xmark" aria-hidden="true"></i> Fora do intervalo';
+    }
+
+    const realStr = h.preco_real !== null
+        ? '$' + h.preco_real.toLocaleString('pt-BR')
+        : '<span style="color:var(--text-faint)">&mdash;</span>';
+
+    const erroStr = h.erro !== null
+        ? '<span style="color:' + (Math.abs(h.erro / (h.preco_real || 1) * 100) < 2 ? 'var(--up)' : 'var(--down)') + '">' +
+              (h.erro > 0 ? '+' : '') + h.erro.toLocaleString('pt-BR') +
+          '</span>'
+        : '<span style="color:var(--text-faint)">&mdash;</span>';
+
+    const intervalo = '$' + h.confianca_min.toLocaleString('pt-BR') + ' &ndash; $' + h.confianca_max.toLocaleString('pt-BR');
+
+    return '<tr>' +
+        '<td>' + h.data + '</td>' +
+        '<td class="moeda-cell">' + escapeHtml(nomeMoeda(h.moeda)) + '</td>' +
+        '<td>$' + h.previsao.toLocaleString('pt-BR') + '</td>' +
+        '<td>' + realStr + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--text-muted)">' + intervalo + '</td>' +
+        '<td>' + erroStr + '</td>' +
+        '<td><span class="result-chip ' + chipClass + '">' + chipHtml + '</span></td>' +
+    '</tr>';
+}
+
+/** Números de página com elipse: 1 … 4 5 6 … 20 */
+function paginasParaMostrar(atual, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+    const nums = new Set([1, total, atual, atual - 1, atual + 1]);
+    if (atual <= 3) [2, 3, 4].forEach(n => nums.add(n));
+    if (atual >= total - 2) [total - 3, total - 2, total - 1].forEach(n => nums.add(n));
+
+    const ordenados = [...nums].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+    const saida = [];
+    let anterior = 0;
+    for (const n of ordenados) {
+        if (anterior && n - anterior > 1) saida.push('...');
+        saida.push(n);
+        anterior = n;
+    }
+    return saida;
+}
+
+function renderPaginacao(total, de, ate) {
+    const nav = document.getElementById('paginacao');
+    const paginas = Math.max(1, Math.ceil(total / estadoHistorico.porPagina));
+
+    if (total === 0) {
+        nav.innerHTML = '';
+        return;
+    }
+
+    const partes = [];
+    partes.push('<button class="pag-btn" data-pagina="' + (estadoHistorico.pagina - 1) + '"' +
+                (estadoHistorico.pagina <= 1 ? ' disabled' : '') +
+                ' aria-label="Pagina anterior">&laquo; Anterior</button>');
+
+    for (const item of paginasParaMostrar(estadoHistorico.pagina, paginas)) {
+        if (item === '...') {
+            partes.push('<span class="pag-ellipsis" aria-hidden="true">…</span>');
+            continue;
+        }
+        const ativa = item === estadoHistorico.pagina;
+        partes.push('<button class="pag-btn" data-pagina="' + item + '"' +
+                    (ativa ? ' aria-current="page"' : '') +
+                    ' aria-label="Pagina ' + item + '">' + item + '</button>');
+    }
+
+    partes.push('<button class="pag-btn" data-pagina="' + (estadoHistorico.pagina + 1) + '"' +
+                (estadoHistorico.pagina >= paginas ? ' disabled' : '') +
+                ' aria-label="Proxima pagina">Proxima &raquo;</button>');
+
+    nav.innerHTML = partes.join('');
+}
+
+document.addEventListener('click', e => {
+    const btn = e.target.closest('#paginacao .pag-btn');
+    if (!btn || btn.disabled) return;
+    estadoHistorico.pagina = Number(btn.dataset.pagina);
+    salvarEstadoNaURL();
+    renderHistoricoTabela();
+});
+
+function renderHistoricoTabela() {
+    const tbody = document.getElementById('historico-body');
+    const dados = historicoFiltrado();
+    const total = dados.length;
+    const paginas = Math.max(1, Math.ceil(total / estadoHistorico.porPagina));
+
+    // Filtro mudou e a página atual ficou fora do intervalo: volta para a 1.
+    if (estadoHistorico.pagina > paginas) estadoHistorico.pagina = paginas;
+    if (estadoHistorico.pagina < 1) estadoHistorico.pagina = 1;
+
+    const inicio = (estadoHistorico.pagina - 1) * estadoHistorico.porPagina;
+    const pagina = dados.slice(inicio, inicio + estadoHistorico.porPagina);
+
+    const contagem = document.getElementById('hist-contagem');
+    if (total === 0) {
+        contagem.textContent = 'Nenhum registro com esses filtros.';
+    } else {
+        contagem.textContent = 'Mostrando ' + (inicio + 1) + '–' + (inicio + pagina.length) +
+            ' de ' + total + (total !== historicoGlobal.length ? ' (de ' + historicoGlobal.length + ' no total)' : '');
+    }
+
+    if (!total) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Nenhum registro encontrado com esses filtros.</td></tr>';
+        renderPaginacao(0, 0, 0);
+        return;
+    }
+
+    tbody.innerHTML = pagina.map(linhaHistorico).join('');
+    renderPaginacao(total, inicio + 1, inicio + pagina.length);
+}
 
 function renderFiltros(historico) {
-    const moedas = [...new Set(historico.map(h => h.moeda))].sort();
     const row = document.getElementById('filter-row');
-    row.innerHTML = '<button class="filter-btn active" data-moeda="TODOS" role="tab" aria-selected="true">Todos</button>';
+    const contagemPorMoeda = {};
+    historico.forEach(h => {
+        const c = moedaCanonica(h.moeda);
+        contagemPorMoeda[c] = (contagemPorMoeda[c] || 0) + 1;
+    });
+
+    const moedas = Object.keys(contagemPorMoeda)
+        .sort((a, b) => nomeMoeda(a).localeCompare(nomeMoeda(b), 'pt-BR'));
+
+    row.innerHTML = '<button class="filter-btn" data-moeda="TODOS" role="tab">Todos (' + historico.length + ')</button>';
 
     moedas.forEach(moeda => {
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
         btn.dataset.moeda = moeda;
-        btn.textContent = moeda.charAt(0) + moeda.slice(1).toLowerCase();
+        btn.textContent = nomeMoeda(moeda) + ' (' + contagemPorMoeda[moeda] + ')';
         btn.setAttribute('role', 'tab');
-        btn.setAttribute('aria-selected', 'false');
         row.appendChild(btn);
     });
 
+    sincronizarFiltrosUI();
+}
+
+function sincronizarFiltrosUI() {
+    const row = document.getElementById('filter-row');
+    if (row) {
+        row.querySelectorAll('.filter-btn').forEach(b => {
+            const ativo = b.dataset.moeda === estadoHistorico.moeda;
+            b.classList.toggle('active', ativo);
+            b.setAttribute('aria-selected', ativo ? 'true' : 'false');
+        });
+    }
+    const set = (id, valor) => { const el = document.getElementById(id); if (el) el.value = valor; };
+    set('filtro-resultado', estadoHistorico.resultado);
+    set('filtro-periodo', estadoHistorico.periodo);
+    set('filtro-ordem', estadoHistorico.ordem);
+    set('filtro-porpagina', String(estadoHistorico.porPagina));
+}
+
+function salvarEstadoNaURL() {
+    try {
+        const p = new URLSearchParams();
+        if (estadoHistorico.moeda !== 'TODOS') p.set('moeda', estadoHistorico.moeda);
+        if (estadoHistorico.resultado !== 'TODOS') p.set('resultado', estadoHistorico.resultado);
+        if (estadoHistorico.periodo !== 'TODOS') p.set('periodo', estadoHistorico.periodo);
+        if (estadoHistorico.ordem !== 'recente') p.set('ordem', estadoHistorico.ordem);
+        if (estadoHistorico.porPagina !== 25) p.set('porPagina', String(estadoHistorico.porPagina));
+        if (estadoHistorico.pagina > 1) p.set('pagina', String(estadoHistorico.pagina));
+        const query = p.toString();
+        history.replaceState(null, '', query ? '?' + query : location.pathname);
+    } catch (err) {
+        /* file:// ou navegador sem suporte: o estado segue apenas em memória */
+    }
+}
+
+function carregarEstadoDaURL() {
+    try {
+        const p = new URLSearchParams(location.search);
+        const permitidos = (valor, opcoes) => opcoes.includes(valor) ? valor : null;
+
+        const moeda = p.get('moeda');
+        if (moeda && /^[A-Z]{2,10}$/.test(moeda)) estadoHistorico.moeda = moeda;
+
+        const resultado = permitidos(p.get('resultado'), ['TODOS', 'ACERTO', 'ERRO', 'PENDENTE']);
+        if (resultado) estadoHistorico.resultado = resultado;
+
+        const periodo = permitidos(p.get('periodo'), ['TODOS', '7', '30', '90', '365']);
+        if (periodo) estadoHistorico.periodo = periodo;
+
+        const ordem = permitidos(p.get('ordem'), ['recente', 'antigo', 'erro']);
+        if (ordem) estadoHistorico.ordem = ordem;
+
+        const porPagina = permitidos(p.get('porPagina'), ['10', '25', '50', '100']);
+        if (porPagina) estadoHistorico.porPagina = Number(porPagina);
+
+        const pagina = Number(p.get('pagina'));
+        if (Number.isInteger(pagina) && pagina > 0) estadoHistorico.pagina = pagina;
+    } catch (err) {
+        /* ignora: estado padrão */
+    }
+}
+
+function ligarControles() {
+    const row = document.getElementById('filter-row');
     row.addEventListener('click', e => {
         const btn = e.target.closest('.filter-btn');
         if (!btn) return;
-        filtroAtivo = btn.dataset.moeda;
-        row.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.toggle('active', b === btn);
-            b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
-        });
+        estadoHistorico.moeda = btn.dataset.moeda;
+        estadoHistorico.pagina = 1;
+        sincronizarFiltrosUI();
+        salvarEstadoNaURL();
         renderHistoricoTabela();
     });
-}
 
-function renderHistoricoTabela() {
-    const tbody = document.getElementById('historico-body');
-    const dados = filtroAtivo === 'TODOS'
-        ? historicoGlobal
-        : historicoGlobal.filter(h => h.moeda === filtroAtivo);
+    const aoMudar = (id, chave, converter) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', () => {
+            estadoHistorico[chave] = converter ? converter(el.value) : el.value;
+            estadoHistorico.pagina = 1;
+            salvarEstadoNaURL();
+            renderHistoricoTabela();
+        });
+    };
 
-    if (!dados.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Nenhum dado encontrado.</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = [...dados].reverse().map(h => {
-        let chipHtml, chipClass;
-        if (h.acerto === null) {
-            chipClass = 'chip-pending'; chipHtml = '<i class="fas fa-clock" aria-hidden="true"></i> Aguardando';
-        } else if (h.acerto === '\u2705') {
-            chipClass = 'chip-ok'; chipHtml = '<i class="fas fa-check" aria-hidden="true"></i> Dentro do intervalo';
-        } else {
-            chipClass = 'chip-err'; chipHtml = '<i class="fas fa-xmark" aria-hidden="true"></i> Fora do intervalo';
-        }
-
-        const realStr = h.preco_real !== null
-            ? '$' + h.preco_real.toLocaleString('pt-BR')
-            : '<span style="color:var(--text-faint)">&mdash;</span>';
-
-        const erroStr = h.erro !== null
-            ? '<span style="color:' + (Math.abs(h.erro / (h.preco_real || 1) * 100) < 2 ? 'var(--up)' : 'var(--down)') + '">' +
-                (h.erro > 0 ? '+' : '') + h.erro.toLocaleString('pt-BR') +
-              '</span>'
-            : '<span style="color:var(--text-faint)">&mdash;</span>';
-
-        const intervalo = '$' + h.confianca_min.toLocaleString('pt-BR') + ' &ndash; $' + h.confianca_max.toLocaleString('pt-BR');
-
-        return '<tr>' +
-            '<td>' + h.data + '</td>' +
-            '<td class="moeda-cell">' + h.moeda + '</td>' +
-            '<td>$' + h.previsao.toLocaleString('pt-BR') + '</td>' +
-            '<td>' + realStr + '</td>' +
-            '<td style="font-size:0.75rem;color:var(--text-muted)">' + intervalo + '</td>' +
-            '<td>' + erroStr + '</td>' +
-            '<td><span class="result-chip ' + chipClass + '">' + chipHtml + '</span></td>' +
-        '</tr>';
-    }).join('');
+    aoMudar('filtro-resultado', 'resultado');
+    aoMudar('filtro-periodo', 'periodo');
+    aoMudar('filtro-ordem', 'ordem');
+    aoMudar('filtro-porpagina', 'porPagina', Number);
 }
 
 async function init() {
@@ -295,12 +554,14 @@ async function init() {
         const historico = await resHist.json();
 
         historicoGlobal = historico;
+        carregarEstadoDaURL();
 
         renderFreshness(data.ultima_atualizacao);
         renderFonte(data);
         renderSummary(data, historico);
         renderCards(data, historico);
         renderFiltros(historico);
+        ligarControles();
         renderHistoricoTabela();
 
     } catch (err) {
