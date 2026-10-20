@@ -1,19 +1,29 @@
-
+# Segredos
 .env
 
-
+# Ambientes
+.venv/
 venv/
 env/
 ENV/
 
-
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
+# Saídas geradas (relatórios, gráficos, cache de dados)
+out/
+.cache/
+# gráficos novos gerados pelo motor 2.x (não versionados)
+docs/alocacao.png
+docs/relatorio_completo.json
 
-# alerta_*.png   
-
-
+# Editores
 .vscode/
 .idea/
+.DS_Store

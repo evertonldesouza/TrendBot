@@ -1,95 +1,50 @@
-import os
-import time
-import requests
+"""Compatibilidade com o módulo de coleta da v1.
+
+A coleta agora vive em ``trendbot.data`` e suporta Binance (OHLCV completo),
+CoinGecko, CSV local e simulação determinística — com cache em disco e
+fallback automático. Esta função existe para não quebrar quem importava
+``coletar_dados_historicos`` do arquivo antigo.
+"""
+
+from __future__ import annotations
+
 import logging
-import pandas as pd
-from dotenv import load_dotenv
+import os
 from typing import Optional
 
-load_dotenv()
+import pandas as pd
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+from trendbot.assets import resolve_asset
+from trendbot.data import build_market_data
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-def coletar_dados_historicos(
-    coin: Optional[str] = None,
-    days: Optional[int] = None,
-    max_tentativas: int = 3,
-    timeout: int = 30,
-) -> Optional[pd.DataFrame]:
+
+def coletar_dados_historicos(coin: str | None = None, days: int | None = None) -> Optional[pd.DataFrame]:
+    """Devolve um DataFrame com a coluna ``Preco_USD`` indexada por ``Data``.
+
+    Mantém a assinatura da v1, mas por baixo usa o carregador novo (com cache,
+    retentativas e fallback para simulação quando não há rede).
+    """
     coin = coin or os.getenv("MOEDAS_ALVO", "bitcoin").split(",")[0]
-    days = days or int(os.getenv("DIAS_HISTORICO", "90"))
+    days = int(days or os.getenv("DIAS_HISTORICO", "365"))
+    asset = resolve_asset(coin)
 
-    logger.info(f"Buscando dados historicos de '{coin}' dos ultimos {days} dias...")
+    md = build_market_data([asset], days=days,
+                           source=os.getenv("FONTE_DADOS", "auto"))
+    if md.close.empty or asset.symbol not in md.close.columns:
+        logger.error("Não foi possível coletar dados de %s", asset.symbol)
+        return None
 
-    url = f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart"
-    params = {
-        "vs_currency": "usd",
-        "days": days,
-    }
+    df = md.close[[asset.symbol]].rename(columns={asset.symbol: "Preco_USD"})
+    df.index.name = "Data"
+    logger.info("Coleta concluída: %d pontos de %s (%s)", len(df), asset.symbol, md.source)
+    return df
 
-    for tentativa in range(1, max_tentativas + 1):
-        try:
-            response = requests.get(url, params=params, timeout=timeout)
-
-            if response.status_code == 429:
-                espera = tentativa * 10
-                logger.warning(
-                    f"Rate limit da CoinGecko para '{coin}'. "
-                    f"Tentativa {tentativa}/{max_tentativas}. Aguardando {espera}s..."
-                )
-                time.sleep(espera)
-                continue
-
-            if 400 <= response.status_code < 500:
-                logger.error(
-                    f"Erro permanente da CoinGecko para '{coin}': "
-                    f"HTTP {response.status_code}. Verifique se o ID da moeda existe."
-                )
-                return None
-
-            response.raise_for_status()
-            data = response.json()
-
-            prices = data.get("prices")
-            if not prices:
-                logger.warning("A API retornou sucesso, mas a lista de precos esta vazia.")
-                return None
-
-            df = pd.DataFrame(prices, columns=["Timestamp", "Preco_USD"])
-            df["Data"] = pd.to_datetime(df["Timestamp"], unit="ms")
-            df = df.set_index("Data")[["Preco_USD"]]
-
-            logger.info(f"Coleta concluida com sucesso. Total de {len(df)} pontos de dados extraidos.")
-            return df
-
-        except requests.exceptions.Timeout:
-            logger.warning(
-                f"Timeout ao conectar com a API do CoinGecko para '{coin}'. "
-                f"Tentativa {tentativa}/{max_tentativas}."
-            )
-
-        except requests.exceptions.RequestException as e:
-            logger.warning(
-                f"Falha ao conectar com a API do CoinGecko para '{coin}': {e}. "
-                f"Tentativa {tentativa}/{max_tentativas}."
-            )
-
-        if tentativa < max_tentativas:
-            espera = tentativa * 5
-            logger.info(f"Nova tentativa em {espera}s...")
-            time.sleep(espera)
-
-    logger.error(f"Falha definitiva ao coletar dados de '{coin}' apos {max_tentativas} tentativas.")
-    return None
 
 if __name__ == "__main__":
-    logger.info("Iniciando teste isolado do modulo de coleta...")
-    df_dados = coletar_dados_historicos()
-    if df_dados is not None:
+    df = coletar_dados_historicos()
+    if df is not None:
         print("\n--- Amostra dos Dados Coletados ---")
-        print(df_dados.tail())
+        print(df.tail())

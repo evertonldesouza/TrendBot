@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrendBot · Orientador de Investimentos</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">TB</div>
+      <div>
+        <h1>TrendBot</h1>
+        <p>Orientador quantitativo de investimentos</p>
+      </div>
+    </div>
+    <div class="topbar-meta">
+      <div id="source-badge" class="badge badge-loading" title="Procedência dos dados">
+        <span class="dot"></span> carregando…
+      </div>
+      <button id="btn-recalc" class="btn btn-primary">Recalcular</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ============================ CONTROLES ============================ -->
+  <aside class="panel controls" id="controls">
+    <h2 class="panel-title">Seu perfil</h2>
+
+    <label class="field">
+      <span>Perfil de risco</span>
+      <select id="in-perfil"></select>
+      <small id="perfil-desc" class="hint"></small>
+    </label>
+
+    <label class="field">
+      <span>Ativos monitorados</span>
+      <div id="in-ativos" class="chips"></div>
+      <small class="hint">Escolha de 2 a 8 ativos.</small>
+    </label>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Patrimônio (US$)</span>
+        <input id="in-capital" type="number" min="0" step="500" value="25000">
+      </label>
+      <label class="field">
+        <span>Aporte mensal (US$)</span>
+        <input id="in-aporte" type="number" min="0" step="100" value="1000">
+      </label>
+    </div>
+
+    <details class="advanced">
+      <summary>Carteira atual (opcional)</summary>
+      <p class="hint">Informe o que você tem hoje para receber ordens de rebalanceamento.</p>
+      <div id="in-carteira" class="holdings"></div>
+      <button id="btn-add-pos" class="btn btn-ghost btn-sm">+ adicionar ativo</button>
+    </details>
+
+    <details class="advanced">
+      <summary>Avançado</summary>
+      <label class="field">
+        <span>Fonte de dados</span>
+        <select id="in-fonte">
+          <option value="auto">Automática (rede → CSV → simulação)</option>
+          <option value="coingecko">CoinGecko</option>
+          <option value="binance">Binance</option>
+          <option value="synthetic">Simulação (demo determinística)</option>
+          <option value="csv">CSV local (data/prices.csv)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Histórico (dias)</span>
+        <input id="in-dias" type="number" min="200" max="3000" step="30" value="1095">
+      </label>
+      <label class="check">
+        <input id="in-backtest" type="checkbox" checked>
+        <span>Rodar backtest comparativo</span>
+      </label>
+    </details>
+
+    <button id="btn-apply" class="btn btn-primary btn-block">Gerar orientação</button>
+    <p class="disclaimer-mini">
+      Ferramenta informativa. Não é recomendação de investimento.
+    </p>
+  </aside>
+
+  <!-- ============================ CONTEÚDO ============================ -->
+  <main class="content" id="content">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Calculando risco, previsões e alocação…</p>
+    </div>
+    <div id="error" class="error-box" hidden></div>
+    <div id="results" hidden>
+
+      <!-- Resumo executivo -->
+      <section class="card hero">
+        <div class="hero-head">
+          <span class="eyebrow">Recomendação</span>
+          <h2 id="hero-headline">—</h2>
+        </div>
+        <ul id="hero-points" class="hero-points"></ul>
+      </section>
+
+      <!-- KPIs -->
+      <section class="kpi-grid" id="kpis"></section>
+
+      <!-- Alocação -->
+      <section class="card">
+        <div class="card-head">
+          <h3>Alocação recomendada</h3>
+          <div class="seg" id="alloc-toggle">
+            <button class="seg-btn active" data-view="target">Recomendada</button>
+            <button class="seg-btn" data-view="current">Atual</button>
+            <button class="seg-btn" data-view="delta">Diferença</button>
+          </div>
+        </div>
+        <div class="alloc-wrap">
+          <div id="alloc-donut"></div>
+          <div id="alloc-table" class="alloc-table"></div>
+        </div>
+      </section>
+
+      <!-- Ordens -->
+      <section class="card">
+        <div class="card-head"><h3>Ordens sugeridas</h3><span id="orders-count" class="pill"></span></div>
+        <div id="orders"></div>
+        <div id="contrib-box" class="contrib-box" hidden></div>
+      </section>
+
+      <!-- Risco -->
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-head"><h3>Quem carrega o risco</h3></div>
+          <div id="risk-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Cenários de estresse</h3></div>
+          <div id="stress"></div>
+        </div>
+      </section>
+
+      <!-- Previsões por ativo -->
+      <section class="card">
+        <div class="card-head">
+          <h3>Previsões por ativo</h3>
+          <div class="seg" id="hz-toggle">
+            <button class="seg-btn" data-hz="1">1 dia</button>
+            <button class="seg-btn" data-hz="7">7 dias</button>
+            <button class="seg-btn active" data-hz="30">30 dias</button>
+          </div>
+        </div>
+        <div id="assets" class="assets-grid"></div>
+      </section>
+
+      <!-- Honestidade do modelo -->
+      <section class="card model-card">
+        <div class="card-head"><h3>Honestidade do modelo</h3>
+          <span id="model-verdict" class="pill">—</span></div>
+        <div id="model-body"></div>
+      </section>
+
+      <!-- Backtest -->
+      <section class="card" id="backtest-card" hidden>
+        <div class="card-head"><h3>Backtest comparativo</h3>
+          <span class="hint">US$ 10.000 no início do período, custos de 0,30% por giro</span></div>
+        <div id="backtest-chart"></div>
+        <div id="backtest-table"></div>
+        <p id="backtest-verdict" class="verdict"></p>
+      </section>
+
+      <!-- Alertas -->
+      <section class="card" id="alerts-card" hidden>
+        <div class="card-head"><h3>Alertas</h3></div>
+        <div id="alerts"></div>
+      </section>
+
+      <!-- O que observar -->
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-head"><h3>O que observar</h3></div>
+          <ul id="watch" class="list"></ul>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>O que me faria mudar de ideia</h3></div>
+          <ul id="invalidate" class="list"></ul>
+        </div>
+      </section>
+
+      <footer class="disclaimer">
+        <strong>Aviso:</strong> este sistema usa modelos estatísticos sobre dados históricos.
+        Não constitui recomendação de investimento, consultoria financeira ou promessa de retorno.
+        Criptoativos são de altíssimo risco e podem perder valor integralmente.
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
