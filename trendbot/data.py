@@ -91,7 +91,17 @@ class MarketData:
 # ---------------------------------------------------------------------------
 
 _REDE_INDISPONIVEL_ATE: float = 0.0   # timestamp: evita insistir em rede morta
+_ULTIMOS_ERROS_REDE: list[str] = []   # motivo das últimas falhas (para o relatório)
 _JANELA_REDE = 300.0                  # 5 minutos sem tentar rede após falha total
+
+
+def ultimos_erros_rede() -> list[str]:
+    """Motivo das últimas falhas de rede, para o relatório declarar o porquê.
+
+    Sem isso, um fallback para simulação é invisível: o job termina com
+    sucesso e ninguém descobre que os dados não são de mercado.
+    """
+    return list(_ULTIMOS_ERROS_REDE[-6:])
 
 
 def rede_disponivel() -> bool:
@@ -127,16 +137,20 @@ def _http_get_json(url: str, params: dict | None = None, timeout: int = 8, tries
             if resp.status_code == 429:
                 wait = attempt * 10
                 logger.warning("Rate limit em %s. Aguardando %ss...", url, wait)
+                _ULTIMOS_ERROS_REDE.append(f"429 (rate limit) em {url}")
                 time.sleep(wait)
                 continue
             if 400 <= resp.status_code < 500:
-                logger.warning("Erro HTTP %s em %s", resp.status_code, url)
+                corpo = (resp.text or "")[:160].replace("\n", " ")
+                logger.warning("Erro HTTP %s em %s: %s", resp.status_code, url, corpo)
+                _ULTIMOS_ERROS_REDE.append(f"HTTP {resp.status_code} em {url}: {corpo}")
                 return None
             resp.raise_for_status()
             return resp.json()
         except Exception as exc:  # noqa: BLE001 - rede é inerentemente instável
             last_error = exc
             logger.warning("Falha de rede (%s/%s) em %s: %s", attempt, tries, url, exc)
+            _ULTIMOS_ERROS_REDE.append(f"{type(exc).__name__} em {url}: {exc}")
             if attempt < tries:
                 time.sleep(attempt * 2)
     if last_error is not None:
@@ -349,7 +363,11 @@ def fetch_coingecko(asset: Asset, days: int, cache_dir: str, max_retries: int = 
         return cached.iloc[:, 0].rename(asset.symbol)
 
     url = f"https://api.coingecko.com/api/v3/coins/{asset.key}/market_chart"
-    data = _http_get_json(url, {"vs_currency": "usd", "days": int(days), "interval": "daily"}, tries=max_retries)
+    # IMPORTANTE: não enviar "interval". Ele é de plano pago — a API pública
+    # gratuita responde 4xx, o que derrubava a busca inteira para a simulação
+    # em todas as execuções. Para days > 365 a própria API já devolve
+    # granularidade diária. (O v1 fazia exatamente assim e funcionava.)
+    data = _http_get_json(url, {"vs_currency": "usd", "days": int(days)}, tries=max_retries)
     prices = (data or {}).get("prices") if isinstance(data, dict) else None
     if not prices:
         return None

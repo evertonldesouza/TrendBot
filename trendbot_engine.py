@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 from trendbot.assets import CASH
 from trendbot.config import PortfolioState, Settings, get_profile
-from trendbot.data import build_market_data, describe_source
+from trendbot.data import build_market_data, describe_source, ultimos_erros_rede
 from trendbot.forecast import forecast_universe, HORIZONS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -159,7 +159,11 @@ def fluxo_principal() -> None:
 
     os.makedirs(DOCS, exist_ok=True)
     simulado = md.source == "synthetic"
+    # Se não conseguiu dados de mercado, declara o motivo: um fallback para
+    # simulação que não diz por quê é indistinguível de um relatório real.
+    detalhes = ultimos_erros_rede() if simulado else []
     fonte = {
+        "detalhes": detalhes,
         "id": md.source,
         "nome": describe_source(md),
         "simulada": simulado,
@@ -183,6 +187,8 @@ def fluxo_principal() -> None:
     if simulado:
         logger.warning("DADOS SIMULADOS publicados em docs/data.json — "
                        "as APIs públicas falharam. O dashboard exibe o aviso.")
+        for motivo in detalhes:
+            logger.warning("  motivo: %s", motivo)
 
     salvar_historico(historico[-400:])
 
