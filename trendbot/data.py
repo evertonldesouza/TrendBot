@@ -356,18 +356,38 @@ def _synthetic_ohlcv(close: pd.DataFrame, seed: int) -> tuple[pd.DataFrame, pd.D
 # Provedores reais
 # ---------------------------------------------------------------------------
 
+# A API pública gratuita da CoinGecko só aceita até 365 dias de histórico.
+# Pedir mais devolve HTTP 401 (error_code 10012, "exceeds the allowed time
+# range"), o que derrubava a busca inteira para a simulação. Com uma chave
+# (demo ou pro) o limite é maior, então o pedido original é preservado.
+LIMITE_DIAS_COINGECKO_PUBLICO = 365
+
+
 def fetch_coingecko(asset: Asset, days: int, cache_dir: str, max_retries: int = 1) -> pd.Series | None:
     """Série diária de fechamento via API pública da CoinGecko."""
     cached = _load_cache(cache_dir, f"cg_{asset.key}", max_age_days=1.0)
     if cached is not None and len(cached) >= max(30, int(days * 0.8)):
         return cached.iloc[:, 0].rename(asset.symbol)
 
+    api_key = os.getenv("COINGECKO_API_KEY", "").strip()
+    dias_pedido = int(days)
+
     url = f"https://api.coingecko.com/api/v3/coins/{asset.key}/market_chart"
-    # IMPORTANTE: não enviar "interval". Ele é de plano pago — a API pública
-    # gratuita responde 4xx, o que derrubava a busca inteira para a simulação
-    # em todas as execuções. Para days > 365 a própria API já devolve
-    # granularidade diária. (O v1 fazia exatamente assim e funcionava.)
-    data = _http_get_json(url, {"vs_currency": "usd", "days": int(days)}, tries=max_retries)
+    # IMPORTANTE: não enviar "interval" — é parâmetro de plano pago e a API
+    # pública responde 4xx. Para days > 90 a própria CoinGecko já devolve
+    # granularidade diária.
+    params: dict[str, object] = {"vs_currency": "usd", "days": dias_pedido}
+    if api_key:
+        params["x_cg_demo_api_key"] = api_key
+    elif dias_pedido > LIMITE_DIAS_COINGECKO_PUBLICO:
+        logger.info(
+            "CoinGecko sem chave: histórico limitado a %d dias (pedido: %d). "
+            "Defina COINGECKO_API_KEY para usar o range completo.",
+            LIMITE_DIAS_COINGECKO_PUBLICO, dias_pedido,
+        )
+        params["days"] = LIMITE_DIAS_COINGECKO_PUBLICO
+
+    data = _http_get_json(url, params, tries=max_retries)
     prices = (data or {}).get("prices") if isinstance(data, dict) else None
     if not prices:
         return None

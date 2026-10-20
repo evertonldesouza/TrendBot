@@ -94,8 +94,20 @@ def test_market_data_filtra_e_ordena():
     assert md.last_date == pd.Timestamp("2024-01-03")
 
 
-def test_build_market_data_cai_para_simulacao_sem_rede(tmp_path):
+def test_build_market_data_cai_para_simulacao_sem_rede(tmp_path, monkeypatch):
+    """Sem provedor nenhum, cai na simulação — e avisa.
+
+    Cuidado: este teste já passou "por acidente", porque o CI não conseguia
+    falar com a CoinGecko (HTTP 401 por range inválido). No momento em que a
+    busca voltou a funcionar, ele quebrou. A ausência de rede tem de ser
+    simulada de forma explícita, nunca dependente do ambiente — do contrário o
+    teste mede a sorte da máquina, não o comportamento do código.
+    """
+    from trendbot import data as modulo
     from trendbot.assets import resolve_assets
+
+    monkeypatch.setattr(modulo, "_http_get_json", lambda *args, **kwargs: None)
+
     md = build_market_data(
         resolve_assets(["bitcoin", "ethereum"]), days=400,
         source="coingecko", cache_dir=str(tmp_path), data_dir=str(tmp_path),
@@ -604,3 +616,41 @@ def test_tentativas_de_rede_sao_configuraveis_e_o_job_diario_insiste_mais():
         assert Settings.from_env().network_tries == 4
     finally:
         os.environ.pop("TENTATIVAS_REDE", None)
+
+
+def test_coingecko_respeita_o_limite_de_historico_da_api_publica(monkeypatch, tmp_path):
+    """A API pública da CoinGecko recusa mais de 365 dias.
+
+    Pedir 1095 devolvia HTTP 401 (error_code 10012, "exceeds the allowed time
+    range") e derrubava a busca inteira para a simulação. Com chave, o pedido
+    original é preservado.
+    """
+    from trendbot import data as modulo
+    from trendbot.assets import resolve_asset
+
+    chamadas: list[dict] = []
+
+    def http_falso(url, params=None, timeout=8, tries=1):
+        chamadas.append(dict(params or {}))
+        return None
+
+    monkeypatch.setattr(modulo, "_http_get_json", http_falso)
+    monkeypatch.delenv("COINGECKO_API_KEY", raising=False)
+    asset = resolve_asset("bitcoin")
+
+    modulo.fetch_coingecko(asset, days=1095, cache_dir=str(tmp_path))
+    assert chamadas, "deveria ter chamado a API"
+    assert chamadas[-1]["days"] == modulo.LIMITE_DIAS_COINGECKO_PUBLICO
+    assert "interval" not in chamadas[-1], "interval é de plano pago, a pública recusa"
+    assert "x_cg_demo_api_key" not in chamadas[-1]
+
+    # com chave, mantém o range pedido sem cortar
+    monkeypatch.setenv("COINGECKO_API_KEY", "demo-key")
+    modulo.fetch_coingecko(asset, days=1095, cache_dir=str(tmp_path / "b"))
+    assert chamadas[-1]["days"] == 1095
+    assert chamadas[-1]["x_cg_demo_api_key"] == "demo-key"
+
+    # um pedido já dentro do limite não é mexido
+    monkeypatch.delenv("COINGECKO_API_KEY", raising=False)
+    modulo.fetch_coingecko(asset, days=180, cache_dir=str(tmp_path / "c"))
+    assert chamadas[-1]["days"] == 180
