@@ -321,9 +321,19 @@ def forecast_asset(price: pd.Series, high: pd.Series | None = None,
     X_valid = feats.dropna()
     X_mat = X_valid.to_numpy(dtype=float)
 
+    # Com histórico curto (a API pública da CoinGecko limita a 365 dias, e as
+    # features consomem ~180 de aquecimento), treinar com 180 dias deixava
+    # apenas 5 pontos de teste: abaixo do mínimo, a validação era pulada e o
+    # card reportava a sentinela skill=-1 / cobertura=0 como se fosse medição.
+    #
+    # A regra reserva ~90 linhas para teste (~30 pontos, já descontado o passo
+    # de 3) e encurta o treino só quando necessário: com dados de sobra nada
+    # muda (sempre o menor dos dois).
+    min_train = min(_MIN_TRAIN, max(80, len(X_valid) - 90))
+
     for h in horizons:
         target = (logp.shift(-h) - logp).reindex(X_valid.index)
-        pred, naive, actual, times = _walk_forward(X_valid, target, h)
+        pred, naive, actual, times = _walk_forward(X_valid, target, h, min_train=min_train)
         if len(actual) < 25 or not np.isfinite(actual).all():
             logger.info("%s: amostra insuficiente no horizonte %dd (%d pontos).", symbol, h, len(actual))
             horizons_out[h] = _naive_horizon(logp, h, float(price.iloc[-1]))
@@ -582,7 +592,21 @@ def forecast_universe(md, symbols: list[str] | None = None,
     obs = int(np.mean([f.n_observations for f in out.values()]))
 
     notes: list[str] = []
-    if avg_skill > 0.05:
+    if obs <= 0:
+        # Nenhum horizonte teve amostra fora da amostra suficiente. Aqui -1.0
+        # e 0% são sentinelas, não medições: dizer "sem habilidade" acusaria o
+        # modelo de algo que não foi testado.
+        verdict = ("Histórico insuficiente para avaliar o modelo fora da amostra.")
+        notes.append(
+            "Nenhum horizonte reuniu o mínimo de pontos de teste, então o peso do "
+            "modelo fica em zero por falta de evidência — não porque ele tenha se "
+            "mostrado ruim. A recomendação segue guiada por risco e disciplina."
+        )
+        notes.append(
+            "Para habilitar a avaliação, aumente DIAS_HISTORICO (ou use "
+            "COINGECKO_API_KEY para levantar o limite de 365 dias da API pública)."
+        )
+    elif avg_skill > 0.05:
         verdict = "Modelo com habilidade marginal, mas positiva, fora da amostra."
         notes.append("Ainda assim, a vantagem é pequena: use o modelo para calibrar tamanho, não para apostar.")
     elif avg_skill > -0.05:
@@ -591,6 +615,13 @@ def forecast_universe(md, symbols: list[str] | None = None,
     else:
         verdict = "Modelo sem habilidade fora da amostra neste recorte."
         notes.append("Previsões pontuais foram praticamente desligadas; a recomendação é guiada por risco e disciplina.")
+
+    if 0 < obs < 120:
+        notes.append(
+            f"A validação rodou com apenas {obs} pontos fora da amostra: a "
+            "estimativa de habilidade é ruidosa, e o peso do modelo já vem "
+            "descontado por isso."
+        )
 
     if avg_cover and avg_cover < 0.80:
         notes.append(f"Intervalos de 90% cobriram {avg_cover:.0%} dos resultados reais — "
