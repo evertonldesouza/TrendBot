@@ -428,3 +428,20 @@ footer {
     .summary-row { grid-template-columns: repeat(2, 1fr); }
     .footer-inner { flex-direction: column; }
 }
+/* ---- Aviso de origem dos dados (transparencia) ---- */
+.fonte-banner {
+    margin: 0 0 1.25rem 0;
+    padding: 0.85rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    border: 1px solid rgba(210, 153, 34, 0.35);
+    background: var(--warn-bg);
+    color: var(--warn);
+}
+.fonte-banner.ok {
+    border-color: rgba(88, 166, 255, 0.3);
+    background: rgba(88, 166, 255, 0.08);
+    color: var(--accent);
+}
+.fonte-banner strong { font-weight: 700; }

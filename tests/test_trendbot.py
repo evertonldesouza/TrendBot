@@ -551,3 +551,56 @@ def test_nenhum_peso_alvo_e_negativo_em_qualquer_perfil(mercado, previsões):
             assert peso >= 0.0, f"{chave}: peso negativo em {simbolo} ({peso})"
         assert advice.target_weights[CASH] >= perfil.cash_floor - 1e-6
         assert sum(advice.target_weights.values()) == pytest.approx(1.0, abs=1e-6)
+
+
+def test_relatorio_publicado_declara_a_origem_dos_dados():
+    """O dashboard do Pages precisa dizer se os dados são simulados.
+
+    Já publicamos preços da simulação (âncoras redondas: BTC 82.000,00) sem
+    nenhum aviso, porque o data.json não tinha campo de fonte e o dashboard
+    nunca mencionava origem. Se o fetch cair no fallback, o relatório tem de
+    dizer isso — do contrário parece dado de mercado real.
+    """
+    import json
+    import os
+    import re
+
+    fonte_mod = pathlib.Path("trendbot_engine.py").read_text(encoding="utf-8")
+    # data.json precisa expor a fonte junto dos ativos
+    assert '"fonte"' in fonte_mod
+    assert "describe_source" in fonte_mod
+    assert "simulada" in fonte_mod
+
+    # e o dashboard precisa renderizar o aviso
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+    assert "renderFonte" in js and "fonte-banner" in js
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    assert 'id="fonte-banner"' in html
+
+
+def test_tentativas_de_rede_sao_configuraveis_e_o_job_diario_insiste_mais():
+    """Uma tentativa só derrubava o relatório diário para a simulação.
+
+    A API pública da CoinGecko responde 429 com frequência a IPs de datacenter
+    (GitHub Actions). Com tries=1 o 429 encerrava a busca e o relatório caía
+    na simulação. O padrão continua 1 (latência do relatório interativo), mas
+    o caminho do job diário tem de insistir mais.
+    """
+    import inspect
+    import os
+
+    from trendbot import data as modulo_data
+    from trendbot.config import Settings
+
+    assert "network_tries" in inspect.signature(modulo_data.build_market_data).parameters
+    assert modulo_data.build_market_data.__defaults__ is not None
+
+    # padrão: sem espera extra para quem está olhando o painel
+    assert Settings().network_tries == 1
+
+    # job diário: mais tentativas
+    os.environ["TENTATIVAS_REDE"] = "4"
+    try:
+        assert Settings.from_env().network_tries == 4
+    finally:
+        os.environ.pop("TENTATIVAS_REDE", None)

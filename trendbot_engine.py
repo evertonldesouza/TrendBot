@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 from trendbot.assets import CASH
 from trendbot.config import PortfolioState, Settings, get_profile
-from trendbot.data import build_market_data
+from trendbot.data import build_market_data, describe_source
 from trendbot.forecast import forecast_universe, HORIZONS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -90,11 +90,18 @@ def _resolver_pendencias(historico: list[dict], precos) -> int:
 
 def fluxo_principal() -> None:
     logger.info("--- INICIANDO CICLO TRENDBOT (compat v1) ---")
-    settings = Settings.from_env(days=int(os.getenv("DIAS_HISTORICO", "1095")))
+    # O job diário roda uma vez por dia e não tem pressa: vale insistir nos
+    # endpoints públicos. Com uma tentativa só, um 429 da CoinGecko derrubava
+    # o relatório para a simulação, que era publicada sem aviso no dashboard.
+    settings = Settings.from_env(
+        days=int(os.getenv("DIAS_HISTORICO", "1095")),
+        network_tries=max(1, int(os.getenv("TENTATIVAS_REDE", "4"))),
+    )
     profile = get_profile(os.getenv("PERFIL_RISCO"))
     md = build_market_data(
         settings.assets, days=settings.days, source=settings.source,
         cache_dir=settings.cache_dir, data_dir=settings.data_dir, seed=settings.seed,
+        network_tries=settings.network_tries,
     )
     if md.close.empty:
         logger.error("Sem dados disponíveis. Encerrando.")
@@ -151,13 +158,31 @@ def fluxo_principal() -> None:
         return
 
     os.makedirs(DOCS, exist_ok=True)
+    simulado = md.source == "synthetic"
+    fonte = {
+        "id": md.source,
+        "nome": describe_source(md),
+        "simulada": simulado,
+        "aviso": (
+            "ATENÇÃO: os dados abaixo são de uma SIMULAÇÃO determinística, não de "
+            "mercado real. As APIs públicas não responderam nesta execução."
+            if simulado else
+            "Preços de mercado obtidos de fonte pública. Projeções são estimativas, "
+            "não garantia."
+        ),
+    }
     with open(os.path.join(DOCS, "data.json"), "w", encoding="utf-8") as f:
         json.dump({
             "ultima_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "fonte": fonte,
             "modelo": card.as_dict(),
             "ativos": dados_json,
         }, f, ensure_ascii=False, indent=4)
-    logger.info("docs/data.json atualizado (%d ativos)", len(dados_json))
+    logger.info("docs/data.json atualizado (%d ativos) | fonte: %s",
+                len(dados_json), fonte["nome"])
+    if simulado:
+        logger.warning("DADOS SIMULADOS publicados em docs/data.json — "
+                       "as APIs públicas falharam. O dashboard exibe o aviso.")
 
     salvar_historico(historico[-400:])
 

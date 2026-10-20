@@ -102,6 +102,36 @@ function renderSummary(data, historico) {
     document.getElementById('s-prox').textContent = horasProx;
 }
 
+function escapeHtml(texto) {
+    return String(texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderFonte(data) {
+    const banner = document.getElementById('fonte-banner');
+    if (!banner) return;
+    const fonte = data.fonte;
+    if (!fonte) { banner.hidden = true; return; }
+
+    banner.hidden = false;
+    if (fonte.simulada) {
+        banner.className = 'fonte-banner';
+        banner.innerHTML =
+            '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i> ' +
+            '<strong>Dados simulados.</strong> ' + escapeHtml(fonte.aviso || '');
+    } else {
+        banner.className = 'fonte-banner ok';
+        banner.innerHTML =
+            '<i class="fas fa-circle-info" aria-hidden="true"></i> ' +
+            '<strong>Fonte:</strong> ' + escapeHtml(fonte.nome || fonte.id || '') +
+            ' &mdash; ' + escapeHtml(fonte.aviso || '');
+    }
+}
+
 function renderCards(data, historico) {
     const grid = document.getElementById('dashboard-grid');
     grid.innerHTML = '';
@@ -267,6 +297,7 @@ async function init() {
         historicoGlobal = historico;
 
         renderFreshness(data.ultima_atualizacao);
+        renderFonte(data);
         renderSummary(data, historico);
         renderCards(data, historico);
         renderFiltros(historico);

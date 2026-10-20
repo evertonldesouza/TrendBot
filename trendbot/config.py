@@ -105,6 +105,9 @@ class Settings:
     seed: int = 20260101
     allow_stale_cache: bool = True
     offline: bool = False
+    # Tentativas por endpoint ao buscar preços. 1 favorece a latência do
+    # relatório interativo; o job diário usa mais (ver TENTATIVAS_REDE).
+    network_tries: int = 1
 
     @classmethod
     def from_env(cls, **overrides: Any) -> "Settings":
@@ -120,6 +123,7 @@ class Settings:
             benchmark=(os.getenv("BENCHMARK", "BTC") or "BTC").upper(),
             risk_free_rate=_env_float("TAXA_LIVRE_RISCO", 0.045),
             seed=_env_int("SEED", 20260101),
+            network_tries=max(1, _env_int("TENTATIVAS_REDE", 1)),
             allow_stale_cache=_env_bool("ACEITAR_CACHE_ANTIGO", True),
             offline=_env_bool("OFFLINE", False),
         )
