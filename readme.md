@@ -570,7 +570,21 @@ lê `data.json` + `historico.json`. A lista de histórico tem:
 - **paginação** de 10/25/50/100 por página, com controle de páginas e contagem
   "mostrando X–Y de Z (de N no total)";
 - **estado na URL** (`?moeda=ETH&resultado=ERRO&pagina=2`), para compartilhar
-  uma visão filtrada. Parâmetros inválidos são ignorados.
+  uma visão filtrada. Parâmetros inválidos são ignorados;
+- **coluna de erro em %** ao lado do erro em dólar — 2 mil de erro no Bitcoin
+  é 2,5%, na Cardano é 900%, então o valor absoluto não compara ativos;
+- **cobertura realizada** sob o rótulo "Intervalo 90%" (ex.: *acerto real 97%,
+  112/116*). O nome diz o alvo; o número diz o que aconteceu — esconder isso
+  superestima o risco;
+- **gráfico de calibração**, que se adapta: com uma moeda filtrada mostra
+  previsto × realizado com a reta de 45°; com várias, o erro relativo por dia
+  (misturar Bitcoin e Cardano no mesmo eixo, seis ordens de grandeza, não diz
+  nada). Inclui média e viés do erro;
+- **exportação CSV** do resultado filtrado — todas as páginas, não só a atual,
+  com separador `;`, decimais com vírgula e BOM (senão o Excel pt-BR quebra os
+  acentos);
+- **layout em cards** abaixo de 640px: a tabela de 8 colunas vira uma lista
+  rotulada no celular.
 
 Os nomes de moeda são **canonizados** no painel: o histórico antigo guarda
 `BITCOIN` e o motor atual grava `BTC`. Sem unificar, o filtro mostrava o mesmo

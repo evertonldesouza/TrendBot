@@ -267,6 +267,17 @@ function erroPercentual(h) {
     return Math.abs(h.erro / h.preco_real) * 100;
 }
 
+/** Erro com sinal: positivo = previu acima do realizado (mostra viés). */
+function erroAssinado(h) {
+    if (h.preco_real === null || h.preco_real === undefined || !h.preco_real) return null;
+    return ((h.previsao - h.preco_real) / h.preco_real) * 100;
+}
+
+function formatarNumeroCSV(n) {
+    if (n === null || n === undefined || Number.isNaN(Number(n))) return '';
+    return Number(n).toFixed(2).replace('.', ',');
+}
+
 function historicoFiltrado() {
     const agora = new Date();
 
@@ -325,14 +336,23 @@ function linhaHistorico(h) {
 
     const intervalo = '$' + h.confianca_min.toLocaleString('pt-BR') + ' &ndash; $' + h.confianca_max.toLocaleString('pt-BR');
 
+    // O erro absoluto em dólar não é comparável entre ativos: 2 mil de erro no
+    // Bitcoin é 2,5%, na Cardano é 900%. Por isso a coluna de %.
+    const pct = erroPercentual(h);
+    const pctStr = pct === null
+        ? '<span style="color:var(--text-faint)">&mdash;</span>'
+        : '<span style="color:' + (pct < 2 ? 'var(--up)' : pct < 6 ? 'var(--warn)' : 'var(--down)') + '">' +
+              pct.toFixed(2).replace('.', ',') + '%</span>';
+
     return '<tr>' +
-        '<td>' + h.data + '</td>' +
-        '<td class="moeda-cell">' + escapeHtml(nomeMoeda(h.moeda)) + '</td>' +
-        '<td>$' + h.previsao.toLocaleString('pt-BR') + '</td>' +
-        '<td>' + realStr + '</td>' +
-        '<td style="font-size:0.75rem;color:var(--text-muted)">' + intervalo + '</td>' +
-        '<td>' + erroStr + '</td>' +
-        '<td><span class="result-chip ' + chipClass + '">' + chipHtml + '</span></td>' +
+        '<td data-label="Data">' + h.data + '</td>' +
+        '<td class="moeda-cell" data-label="Moeda">' + escapeHtml(nomeMoeda(h.moeda)) + '</td>' +
+        '<td data-label="Previsao">$' + h.previsao.toLocaleString('pt-BR') + '</td>' +
+        '<td data-label="Real">' + realStr + '</td>' +
+        '<td data-label="Intervalo 90%" style="font-size:0.75rem;color:var(--text-muted)">' + intervalo + '</td>' +
+        '<td data-label="Erro">' + erroStr + '</td>' +
+        '<td data-label="Erro %">' + pctStr + '</td>' +
+        '<td data-label="Resultado"><span class="result-chip ' + chipClass + '">' + chipHtml + '</span></td>' +
     '</tr>';
 }
 
@@ -395,6 +415,215 @@ document.addEventListener('click', e => {
     renderHistoricoTabela();
 });
 
+
+/* ---------------------------------------------------------------------------
+ * Gráfico de calibração
+ *
+ * Misturar ativos num mesmo eixo é inútil: a Cardano custa US$ 0,22 e o
+ * Bitcoin US$ 80 mil, seis ordens de grandeza. Por isso o gráfico adapta:
+ * com uma moeda filtrada, mostra previsto x realizado (com a reta de 45°);
+ * com várias, mostra o erro relativo por dia, que é comparável entre elas.
+ * ------------------------------------------------------------------------- */
+const CAL = { w: 640, h: 320, top: 16, right: 18, bottom: 44, left: 62 };
+
+function ticksLegais(min, max, count) {
+    const span = max - min;
+    if (!(span > 0)) return [min];
+    const bruto = span / (count || 4);
+    const mag = Math.pow(10, Math.floor(Math.log10(bruto)));
+    const norm = bruto / mag;
+    const passo = (norm >= 5 ? 10 : norm >= 2 ? 5 : norm >= 1 ? 2 : 1) * mag;
+    const out = [];
+    for (let v = Math.ceil(min / passo) * passo; v <= max + passo * 0.001; v += passo) out.push(v);
+    return out;
+}
+
+function compacto(n) {
+    const a = Math.abs(n);
+    if (a >= 1000) return (n / 1000).toFixed(a >= 10000 ? 0 : 1).replace('.', ',') + 'k';
+    if (a >= 1) return n.toFixed(0);
+    return n.toFixed(2).replace('.', ',');
+}
+
+function molduraSVG(xMin, xMax, yMin, yMax, fmtX, fmtY) {
+    const esq = CAL.left, dir = CAL.w - CAL.right, topo = CAL.top, base = CAL.h - CAL.bottom;
+    const px = v => esq + (v - xMin) / ((xMax - xMin) || 1) * (dir - esq);
+    const py = v => base - (v - yMin) / ((yMax - yMin) || 1) * (base - topo);
+
+    const partes = ['<svg viewBox="0 0 ' + CAL.w + ' ' + CAL.h + '" role="img" aria-label="Grafico de calibracao">'];
+
+    for (const t of ticksLegais(yMin, yMax, 4)) {
+        const y = py(t);
+        partes.push('<line class="cal-grade" x1="' + esq + '" y1="' + y.toFixed(1) + '" x2="' + dir + '" y2="' + y.toFixed(1) + '"/>');
+        partes.push('<text class="cal-rotulo" x="' + (esq - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + fmtY(t) + '</text>');
+    }
+    for (const t of ticksLegais(xMin, xMax, 4)) {
+        const x = px(t);
+        partes.push('<line class="cal-grade" x1="' + x.toFixed(1) + '" y1="' + topo + '" x2="' + x.toFixed(1) + '" y2="' + base + '"/>');
+        partes.push('<text class="cal-rotulo" x="' + x.toFixed(1) + '" y="' + (base + 18) + '" text-anchor="middle">' + fmtX(t) + '</text>');
+    }
+
+    partes.push('<line class="cal-eixo" x1="' + esq + '" y1="' + topo + '" x2="' + esq + '" y2="' + base + '"/>');
+    partes.push('<line class="cal-eixo" x1="' + esq + '" y1="' + base + '" x2="' + dir + '" y2="' + base + '"/>');
+
+    return { partes, px, py, esq, dir, topo, base };
+}
+
+function corDoPonto(h) {
+    if (h.acerto === null) return 'var(--text-faint)';
+    return h.acerto === '\u2705' ? 'var(--up)' : 'var(--down)';
+}
+
+function rotuloPonto(h) {
+    const pct = erroPercentual(h);
+    return escapeHtml(
+        h.data + ' | ' + nomeMoeda(h.moeda) +
+        ' | previsto ' + h.previsao.toLocaleString('pt-BR') +
+        ' | realizado ' + (h.preco_real === null ? 'pendente' : h.preco_real.toLocaleString('pt-BR')) +
+        (pct === null ? '' : ' | erro ' + pct.toFixed(2).replace('.', ',') + '%')
+    );
+}
+
+function svgPrevistoXRealizado(pontos) {
+    const xs = pontos.map(h => h.previsao);
+    const ys = pontos.map(h => h.preco_real);
+    const min = Math.min(...xs, ...ys), max = Math.max(...xs, ...ys);
+    const folga = (max - min) * 0.08 || 1;
+    const g = molduraSVG(min - folga, max + folga, min - folga, max + folga, compacto, compacto);
+
+    // reta de 45°: onde previsto == realizado
+    g.partes.push('<line class="cal-ref" x1="' + g.px(min - folga).toFixed(1) + '" y1="' + g.py(min - folga).toFixed(1) +
+                  '" x2="' + g.px(max + folga).toFixed(1) + '" y2="' + g.py(max + folga).toFixed(1) + '"/>');
+    g.partes.push('<text class="cal-rotulo" x="' + (g.dir - 6) + '" y="' + (g.py(max + folga) + 14) + '" text-anchor="end">previsto = realizado</text>');
+
+    for (const h of pontos) {
+        g.partes.push('<circle cx="' + g.px(h.previsao).toFixed(1) + '" cy="' + g.py(h.preco_real).toFixed(1) +
+                      '" r="3.4" fill="' + corDoPonto(h) + '"><title>' + rotuloPonto(h) + '</title></circle>');
+    }
+    g.partes.push('<text class="cal-rotulo" x="' + ((g.esq + g.dir) / 2) + '" y="' + (CAL.h - 8) + '" text-anchor="middle">previsto (US$)</text>');
+    g.partes.push('</svg>');
+    return g.partes.join('');
+}
+
+function svgErroPorDia(pontos) {
+    const tempos = pontos.map(h => parseDataHistorico(h.data)).filter(Boolean).map(d => d.getTime());
+    const erros = pontos.map(erroAssinado).filter(v => v !== null);
+    if (!tempos.length || !erros.length) return '';
+
+    const yMax = Math.max(10, Math.max(...erros.map(Math.abs)) * 1.15);
+    const g = molduraSVG(Math.min(...tempos), Math.max(...tempos), -yMax, yMax,
+                         t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); },
+                         v => v.toFixed(0) + '%');
+
+    // faixa de tolerância de 2%: dentro dela a previsão foi, na prática, acertada
+    g.partes.push('<rect class="cal-faixa" x="' + g.esq + '" y="' + g.py(2).toFixed(1) +
+                  '" width="' + (g.dir - g.esq) + '" height="' + (g.py(-2) - g.py(2)).toFixed(1) + '"/>');
+    g.partes.push('<line class="cal-ref" x1="' + g.esq + '" y1="' + g.py(0).toFixed(1) +
+                  '" x2="' + g.dir + '" y2="' + g.py(0).toFixed(1) + '"/>');
+
+    for (const h of pontos) {
+        const t = parseDataHistorico(h.data);
+        const e = erroAssinado(h);
+        if (!t || e === null) continue;
+        g.partes.push('<circle cx="' + g.px(t.getTime()).toFixed(1) + '" cy="' + g.py(e).toFixed(1) +
+                      '" r="3.2" fill="' + corDoPonto(h) + '"><title>' + rotuloPonto(h) + '</title></circle>');
+    }
+    g.partes.push('<text class="cal-rotulo" x="' + ((g.esq + g.dir) / 2) + '" y="' + (CAL.h - 8) + '" text-anchor="middle">dia da previsao</text>');
+    g.partes.push('</svg>');
+    return g.partes.join('');
+}
+
+function renderCalibracao(dados) {
+    const titulo = document.getElementById('cal-titulo');
+    const corpo = document.getElementById('cal-corpo');
+    const nota = document.getElementById('cal-nota');
+    if (!corpo) return;
+
+    const resolvidos = dados.filter(h => h.preco_real !== null && h.preco_real !== undefined && h.previsao);
+
+    if (resolvidos.length < 2) {
+        titulo.textContent = 'Calibracao: previsto x realizado';
+        corpo.innerHTML = '<p class="cal-vazio">Ainda nao ha previsoes resolvidas com esses filtros.</p>';
+        nota.textContent = '';
+        return;
+    }
+
+    let svg;
+    if (estadoHistorico.moeda !== 'TODOS') {
+        titulo.textContent = 'Previsto x realizado — ' + nomeMoeda(estadoHistorico.moeda);
+        svg = svgPrevistoXRealizado(resolvidos);
+    } else {
+        titulo.textContent = 'Erro relativo por dia (todas as moedas)';
+        svg = svgErroPorDia(resolvidos);
+    }
+
+    corpo.innerHTML = svg || '<p class="cal-vazio">Sem dados suficientes para o grafico.</p>';
+
+    const media = resolvidos.reduce((soma, h) => soma + Math.abs(erroAssinado(h) || 0), 0) / resolvidos.length;
+    const vies = resolvidos.reduce((soma, h) => soma + (erroAssinado(h) || 0), 0) / resolvidos.length;
+    nota.textContent = resolvidos.length + ' pontos | erro medio ' + media.toFixed(2).replace('.', ',') +
+        '% | vies ' + (vies >= 0 ? '+' : '') + vies.toFixed(2).replace('.', ',') + '%';
+}
+
+/* ---------------------------------------------------------------------------
+ * Exportação CSV
+ * ------------------------------------------------------------------------- */
+function csvEscapar(valor) {
+    const s = String(valor === null || valor === undefined ? '' : valor);
+    return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportarCSV() {
+    const dados = historicoFiltrado();
+    if (!dados.length) return;
+
+    const cabecalho = ['Data', 'Moeda', 'Previsao', 'Real', 'Intervalo minimo', 'Intervalo maximo',
+                       'Erro', 'Erro %', 'Resultado'];
+    const linhas = dados.map(h => [
+        h.data,
+        nomeMoeda(h.moeda),
+        formatarNumeroCSV(h.previsao),
+        formatarNumeroCSV(h.preco_real),
+        formatarNumeroCSV(h.confianca_min),
+        formatarNumeroCSV(h.confianca_max),
+        formatarNumeroCSV(h.erro),
+        formatarNumeroCSV(erroPercentual(h)),
+        h.acerto === null ? 'Pendente' : (h.acerto === '\u2705' ? 'Dentro' : 'Fora'),
+    ].map(csvEscapar).join(';'));
+
+    // BOM: sem isso o Excel pt-BR quebra os acentos
+    const csv = '\uFEFF' + [cabecalho.join(';')].concat(linhas).join('\r\n');
+
+    try {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'trendbot-historico' +
+            (estadoHistorico.moeda !== 'TODOS' ? '-' + estadoHistorico.moeda.toLowerCase() : '') + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        /* ambiente sem Blob/URL (jsdom, por exemplo): não derruba o painel */
+    }
+}
+
+function atualizarCobertura(dados) {
+    const alvo = document.getElementById('cobertura-nota');
+    if (!alvo) return;
+
+    const resolvidos = dados.filter(h => h.acerto !== null);
+    if (!resolvidos.length) {
+        alvo.textContent = '';
+        return;
+    }
+    const dentro = resolvidos.filter(h => h.acerto === '\u2705').length;
+    const pct = Math.round((dentro / resolvidos.length) * 100);
+    alvo.textContent = 'acerto real: ' + pct + '% (' + dentro + '/' + resolvidos.length + ')';
+}
+
 function renderHistoricoTabela() {
     const tbody = document.getElementById('historico-body');
     const dados = historicoFiltrado();
@@ -416,8 +645,16 @@ function renderHistoricoTabela() {
             ' de ' + total + (total !== historicoGlobal.length ? ' (de ' + historicoGlobal.length + ' no total)' : '');
     }
 
+    // Gráfico e cobertura acompanham os filtros, mas usam o conjunto filtrado
+    // inteiro — não só a página exibida.
+    renderCalibracao(dados);
+    atualizarCobertura(dados);
+
+    const btnCsv = document.getElementById('btn-csv');
+    if (btnCsv) btnCsv.disabled = total === 0;
+
     if (!total) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Nenhum registro encontrado com esses filtros.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">Nenhum registro encontrado com esses filtros.</td></tr>';
         renderPaginacao(0, 0, 0);
         return;
     }
@@ -537,6 +774,9 @@ function ligarControles() {
     aoMudar('filtro-periodo', 'periodo');
     aoMudar('filtro-ordem', 'ordem');
     aoMudar('filtro-porpagina', 'porPagina', Number);
+
+    const btnCsv = document.getElementById('btn-csv');
+    if (btnCsv) btnCsv.addEventListener('click', exportarCSV);
 }
 
 async function init() {

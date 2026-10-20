@@ -522,3 +522,121 @@ footer {
     .hist-controls { gap: 0.6rem; }
     .hist-contagem { margin-left: 0; width: 100%; }
 }
+
+/* ---- Nota no cabeçalho da tabela (cobertura realizada) ---- */
+.th-note {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-faint);
+    white-space: normal;
+}
+
+/* ---- Botão de exportação ---- */
+.hist-btn {
+    align-self: flex-end;
+    padding: 0.45rem 0.8rem;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.hist-btn:hover { border-color: var(--accent); color: var(--accent); }
+.hist-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hist-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---- Gráfico de calibração ---- */
+.calibracao {
+    margin: 0 0 1rem 0;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.cal-titulo {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.cal-corpo svg { width: 100%; height: auto; display: block; }
+.cal-vazio { font-size: 0.85rem; color: var(--text-faint); padding: 1rem 0; text-align: center; }
+
+.cal-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    color: var(--text-faint);
+}
+
+.cal-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+.cal-ponto {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+.cal-ponto.ok  { background: var(--up); }
+.cal-ponto.err { background: var(--down); }
+
+.cal-eixo   { stroke: var(--border); stroke-width: 1; }
+.cal-grade  { stroke: var(--border); stroke-width: 1; opacity: 0.45; }
+.cal-ref    { stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 5 4; }
+.cal-rotulo { fill: var(--text-faint); font-size: 11px; }
+.cal-faixa  { fill: var(--accent); opacity: 0.06; }
+
+/* ---- Tabela em cards no celular ---- */
+@media (max-width: 640px) {
+    #historico-table { min-width: 0; }
+
+    #historico-table thead { display: none; }
+
+    #historico-table tr {
+        display: block;
+        margin-bottom: 0.7rem;
+        padding: 0.6rem 0.8rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+    }
+
+    #historico-table td {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.28rem 0;
+        border-bottom: none;
+        white-space: normal;
+        text-align: right;
+    }
+
+    #historico-table td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-faint);
+        text-align: left;
+    }
+
+    #historico-table td.moeda-cell { font-weight: 600; }
+
+    /* a linha de "carregando"/"vazio" não é um card */
+    #historico-table td.loading-cell { display: block; text-align: center; }
+    #historico-table td.loading-cell::before { content: none; }
+
+    .table-wrapper { overflow-x: visible; }
+}
