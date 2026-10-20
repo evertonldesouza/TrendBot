@@ -1,6 +1,14 @@
 {
-    "ultima_atualizacao": "20/10/2026 19:15",
+    "ultima_atualizacao": "20/10/2026 19:21",
     "fonte": {
+        "detalhes": [
+            "HTTP 451 em https://api.binance.com/api/v3/klines: {   \"code\": 0,   \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact custom",
+            "HTTP 451 em https://api.binance.com/api/v3/klines: {   \"code\": 0,   \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact custom",
+            "HTTP 401 em https://api.coingecko.com/api/v3/coins/solana/market_chart: {\"error\":{\"status\":{\"timestamp\":\"2026-10-20T19:21:17.427+00:00\",\"error_code\":10012,\"error_message\":\"Your request exceeds the allowed time range. Public API user",
+            "HTTP 401 em https://api.coingecko.com/api/v3/coins/ethereum/market_chart: {\"error\":{\"status\":{\"timestamp\":\"2026-10-20T19:21:17.430+00:00\",\"error_code\":10012,\"error_message\":\"Your request exceeds the allowed time range. Public API user",
+            "HTTP 401 em https://api.coingecko.com/api/v3/coins/cardano/market_chart: {\"error\":{\"status\":{\"timestamp\":\"2026-10-20T19:21:17.445+00:00\",\"error_code\":10012,\"error_message\":\"Your request exceeds the allowed time range. Public API user",
+            "HTTP 401 em https://api.coingecko.com/api/v3/coins/bitcoin/market_chart: {\"error\":{\"status\":{\"timestamp\":\"2026-10-20T19:21:17.450+00:00\",\"error_code\":10012,\"error_message\":\"Your request exceeds the allowed time range. Public API user"
+        ],
         "id": "synthetic",
         "nome": "Simulação determinística (demo)",
         "simulada": true,
@@ -8,7 +16,7 @@
     },
     "modelo": {
         "n_assets": 4,
-        "avg_skill": -0.10114403425975471,
+        "avg_skill": -0.10114403425975477,
         "avg_hit_rate": 0.48469115862112483,
         "avg_coverage": 0.8519430415263748,
         "observations": 184,
