@@ -375,6 +375,28 @@ Ordem de preferência em modo `auto`:
 4. **CSV local** (`data/prices.csv`) — para dados proprietários.
 5. **Simulação determinística** — usada em demo, testes e quando não há rede.
 
+### Limites da API pública da CoinGecko
+
+A API **pública e gratuita** da CoinGecko tem duas restrições que importam aqui:
+
+| Restrição | Consequência | O que o código faz |
+| --- | --- | --- |
+| Histórico máximo de **365 dias** | pedir 1095 dias devolve HTTP 401 (`error_code 10012`, *exceeds the allowed time range*) | corta o pedido em 365 e avisa no log |
+| Parâmetro `interval` é de plano pago | responder 4xx derruba a busca inteira | nunca envia `interval` |
+
+Para usar o histórico completo, defina `COINGECKO_API_KEY` (chave demo ou pro)
+como secret/variável de ambiente; o pedido original é então preservado e a
+chave é enviada como `x_cg_demo_api_key`.
+
+A Binance costuma responder **HTTP 451** (*Service unavailable from a
+restricted location*) a partir de IPs de datacenter — inclusive os do GitHub
+Actions. Isso é esperado: o `auto` cai para a CoinGecko sem alarde.
+
+Se todos os provedores falharem, o relatório cai na simulação — e **isso é
+declarado**: `data.json` expõe `fonte.simulada` com o motivo em
+`fonte.detalhes`, e o dashboard mostra um aviso vermelho no topo. nunca
+confie num número deste projeto sem conferir a faixa de fonte.
+
 A simulação não é aleatória "de mentira": é um modelo de **fator de mercado com
 regimes** (calmo / normal / estresse, cadeia de Markov), retornos com caudas
 gordas (t-Student), saltos, volatilidade agrupada (GARCH-like), ciclo de longo
