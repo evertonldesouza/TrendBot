@@ -729,3 +729,64 @@ def test_nomes_legados_e_novos_colapsam_no_mesmo_simbolo():
         "a precisão por moeda voltou a comparar nomes crus; o card do BTC "
         "mostra 'Aguardando dados' mesmo com histórico resolvido"
     )
+
+
+# ---------------------------------------------------------------------------
+# Autoavaliação do modelo com histórico curto
+# ---------------------------------------------------------------------------
+
+def _mercado_simulado(dias: int, seed: int = 20260101):
+    from trendbot.data import MarketData, simulate_market
+
+    precos = simulate_market(["BTC", "ETH", "SOL", "ADA"], days=dias, seed=seed)
+    return MarketData(close=precos, source="synthetic")
+
+
+def test_modelo_e_avaliado_mesmo_com_365_dias():
+    """A API pública da CoinGecko limita o histórico a 365 dias.
+
+    Nesse recorte a validação era pulada: as features comem ~180 dias de
+    aquecimento, sobravam 5 pontos de teste (abaixo do mínimo de 25) e o card
+    devolvia as sentinelas skill=-1 / cobertura=0. Agora o tamanho do treino
+    cede para que sobre amostra de teste.
+    """
+    fc, card = forecast_universe(_mercado_simulado(365), horizons=(1,))
+
+    assert card.observations > 0, (
+        "a validação foi pulada: com 365 dias o modelo volta a não ser avaliado "
+        "e o card reporta sentinelas como se fossem medição"
+    )
+    # -1.0 e 0% eram as sentinelas do caminho "sem dados"
+    assert card.avg_skill != -1.0
+    assert card.avg_coverage > 0.0
+
+
+def test_historico_curto_diz_que_faltam_dados_e_nao_que_o_modelo_e_ruim():
+    """Sem amostra de teste, o veredito não pode acusar o modelo.
+
+    Dizer "sem habilidade" quando não houve uma única observação fora da
+    amostra é pior que inútil: o usuário conclui que o modelo foi testado e
+    reprovado, quando na verdade não foi testado.
+    """
+    fc, card = forecast_universe(_mercado_simulado(240), horizons=(1,))
+
+    assert card.observations == 0
+    assert "insuficiente" in card.verdict.lower()
+    assert "sem habilidade" not in card.verdict.lower()
+
+
+def test_avaliacao_com_poucos_pontos_avisa_que_e_ruidosa():
+    """Estimativa com amostra curta precisa se dizer ruidosa."""
+    fc, card = forecast_universe(_mercado_simulado(365), horizons=(1,))
+
+    assert card.observations < 120
+    assert any("ruidosa" in n.lower() for n in card.notes), card.notes
+
+
+def test_historico_longo_nao_muda_o_tamanho_do_treino():
+    """A regra só encurta o treino quando falta dado; com sobra, nada muda."""
+    curto = forecast_universe(_mercado_simulado(730), horizons=(1,))[1]
+    longo = forecast_universe(_mercado_simulado(1095), horizons=(1,))[1]
+
+    assert curto.observations > 30
+    assert longo.observations > curto.observations
