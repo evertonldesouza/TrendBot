@@ -82,9 +82,16 @@ jobs:
 
           git add docs/data.json
           git add docs/historico.json
-          git add docs/relatorio_completo.json
-          git add docs/alerta_*.png
-          git add docs/alocacao.png
+          # O dashboard do GitHub Pages consome só data.json e historico.json.
+          # alocacao.png e relatorio_completo.json são artefatos do motor 2.x
+          # listados no .gitignore (regenerados todo dia), então NÃO entram
+          # aqui: tentar adicioná-los fazia o git add falhar com "path is
+          # ignored" e derrubava o job.
+          # O laço evita quebrar o job se nenhum alerta for gerado (um
+          # `git add docs/alerta_*.png` sem correspondência é erro).
+          for f in docs/alerta_*.png; do
+            [ -e "$f" ] && git add "$f"
+          done
 
           if ! git diff --cached --quiet; then
             git commit -m "update: relatório diário [skip ci]"
