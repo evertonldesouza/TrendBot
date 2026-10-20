@@ -86,8 +86,22 @@
                 </select>
             </div>
 
+            <button type="button" class="hist-btn" id="btn-csv" title="Baixa em CSV o resultado dos filtros (todas as paginas)">
+                <i class="fas fa-file-csv" aria-hidden="true"></i> Exportar CSV
+            </button>
+
             <p class="hist-contagem" id="hist-contagem" aria-live="polite"></p>
         </div>
+
+        <figure class="calibracao" id="calibracao">
+            <figcaption class="cal-titulo" id="cal-titulo">Calibracao: previsto x realizado</figcaption>
+            <div class="cal-corpo" id="cal-corpo"></div>
+            <p class="cal-legenda">
+                <span class="cal-item"><i class="cal-ponto ok" aria-hidden="true"></i> dentro do intervalo</span>
+                <span class="cal-item"><i class="cal-ponto err" aria-hidden="true"></i> fora do intervalo</span>
+                <span class="cal-item" id="cal-nota"></span>
+            </p>
+        </figure>
 
         <div class="table-wrapper">
             <table id="historico-table" aria-label="Tabela de historico de previsoes">
@@ -97,13 +111,14 @@
                         <th scope="col">Moeda</th>
                         <th scope="col">Previsao</th>
                         <th scope="col">Real</th>
-                        <th scope="col">Intervalo 90%</th>
+                        <th scope="col">Intervalo 90%<span class="th-note" id="cobertura-nota"></span></th>
                         <th scope="col">Erro</th>
+                        <th scope="col">Erro %</th>
                         <th scope="col">Resultado</th>
                     </tr>
                 </thead>
                 <tbody id="historico-body">
-                    <tr><td colspan="7" class="loading-cell"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Carregando historico...</td></tr>
+                    <tr><td colspan="8" class="loading-cell"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Carregando historico...</td></tr>
                 </tbody>
             </table>
         </div>

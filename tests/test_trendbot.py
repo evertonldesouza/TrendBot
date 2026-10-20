@@ -790,3 +790,84 @@ def test_historico_longo_nao_muda_o_tamanho_do_treino():
 
     assert curto.observations > 30
     assert longo.observations > curto.observations
+
+
+# ---------------------------------------------------------------------------
+# Dashboard: consistência da tabela e melhorias do histórico
+# ---------------------------------------------------------------------------
+
+def _corpo_da_funcao(js: str, nome: str) -> str:
+    import re
+
+    corpo = re.search(r"function " + nome + r"\(.*?\) \{(.*?)\n\}", js, re.S)
+    assert corpo, f"{nome} sumiu de docs/script.js"
+    return corpo.group(1)
+
+
+def test_tabela_tem_o_mesmo_numero_de_colunas_em_todos_os_lugares():
+    """Cabeçalho, linha renderizada e célula de 'vazio' precisam concordar.
+
+    Eu mesmo quebrei isso: adicionei a coluna de erro % no HTML e esqueci o
+    colspan do estado vazio no script.js, que ficou valendo 7 com 8 colunas.
+    O sintoma é sutil — a tabela funciona e só a mensagem de 'nenhum
+    registro' sai torta.
+    """
+    import re
+
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+
+    colunas = len(re.findall(r'<th scope="col">', html))
+    assert colunas >= 7, f"cabeçalho com {colunas} colunas?"
+
+    linha = _corpo_da_funcao(js, "linhaHistorico")
+    tds = len(re.findall(r"<td ", linha))
+    assert tds == colunas, f"cabeçalho tem {colunas} colunas, a linha renderiza {tds}"
+
+    colspans = {int(n) for n in re.findall(r'colspan="(\d+)"', js + html)}
+    assert colspans == {colunas}, f"colspan {colspans} não bate com {colunas} colunas"
+
+
+def test_coluna_de_erro_relativo_existe_e_usa_o_erro_percentual():
+    """O erro em dólar não compara ativos: 2 mil no BTC é 2,5%, na ADA é 900%."""
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+
+    assert "Erro %" in html, "a coluna de erro relativo sumiu do cabeçalho"
+
+    linha = _corpo_da_funcao(js, "linhaHistorico")
+    assert "erroPercentual(h)" in linha, (
+        "a coluna de % voltou a usar o erro absoluto; comparar Bitcoin e "
+        "Cardano em dólar não diz nada"
+    )
+
+
+def test_dashboard_declara_a_cobertura_realizada():
+    """O rótulo 'Intervalo 90%' sem o acerto real induz o leitor ao erro.
+
+    No histórico acumulado a cobertura é de ~97%: os intervalos são mais
+    conservadores do que o nome sugere, e esconder isso superestima o risco.
+    """
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+
+    assert 'id="cobertura-nota"' in html
+    nota = _corpo_da_funcao(js, "atualizarCobertura")
+    assert "acerto real" in nota
+
+
+def test_linhas_tem_data_label_para_o_layout_de_celular():
+    """Sem data-label, o layout em cards abaixo de 640px fica sem rótulos."""
+    import re
+
+    linha = _corpo_da_funcao(pathlib.Path("docs/script.js").read_text(encoding="utf-8"), "linhaHistorico")
+
+    # <td\b([^>]*)> pega tanto "<td>" quanto "<td data-label=...>": com espaço
+    # fixo no regex, a célula sem label escapava e o teste não pegava nada.
+    tds = re.findall(r"<td\b([^>]*)>", linha)
+    assert len(tds) >= 7, f"só {len(tds)} células encontradas"
+
+    for attrs in tds:
+        if "loading-cell" in attrs:
+            continue
+        assert "data-label=" in attrs, f"célula sem data-label: {attrs!r}"
