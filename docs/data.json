@@ -1,8 +1,14 @@
 {
-    "ultima_atualizacao": "20/10/2026 19:00",
+    "ultima_atualizacao": "20/10/2026 19:15",
+    "fonte": {
+        "id": "synthetic",
+        "nome": "Simulação determinística (demo)",
+        "simulada": true,
+        "aviso": "ATENÇÃO: os dados abaixo são de uma SIMULAÇÃO determinística, não de mercado real. As APIs públicas não responderam nesta execução."
+    },
     "modelo": {
         "n_assets": 4,
-        "avg_skill": -0.10114403425975477,
+        "avg_skill": -0.10114403425975471,
         "avg_hit_rate": 0.48469115862112483,
         "avg_coverage": 0.8519430415263748,
         "observations": 184,
