@@ -1,55 +1,78 @@
-name: TrendBot Multi-Asset Daily Run
+name: TrendBot — Execução diária
 
 on:
   schedule:
     - cron: '0 13 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  qualidade:
+    name: Testes
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout do Codigo
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Configurar Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-        cache: 'pip'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
 
-    - name: Instalar Dependencias
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt        
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Rodar Testes
-      run: pytest tests/ -v
+      - name: Rodar testes
+        run: pytest tests/ -v
 
-    - name: Executar TrendBot Multi-Moedas
-      env:
-        EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
-        EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
-        EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
-        MOEDAS_ALVO: ${{ vars.MOEDAS_ALVO || 'bitcoin,ethereum,solana,cardano' }}
-        DIAS_HISTORICO: ${{ vars.DIAS_HISTORICO || '365' }}
-      run: python trendbot_engine.py
+  relatorio:
+    name: Gerar e publicar relatório
+    needs: qualidade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Commit e Push do Dashboard
-      run: |
-        git config --global user.name "TrendBot Action"
-        git config --global user.email "trendbot@actions.github.com"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
 
-        git add docs/data.json
-        git add docs/historico.json
-        git add docs/alerta_*.png
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-        if ! git diff --cached --quiet; then
-          git commit -m "update: dashboard data [skip ci]"
-          git push origin main
-        else
-          echo "Sem mudancas nos dados. Nada a subir."
-        fi
+      - name: Executar motor do TrendBot
+        env:
+          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+          EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
+          EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
+          MOEDAS_ALVO: ${{ vars.MOEDAS_ALVO || 'bitcoin,ethereum,solana,cardano' }}
+          DIAS_HISTORICO: ${{ vars.DIAS_HISTORICO || '1095' }}
+          PERFIL_RISCO: ${{ vars.PERFIL_RISCO || 'moderado' }}
+          CAPITAL_INICIAL: ${{ vars.CAPITAL_INICIAL || '10000' }}
+          FONTE_DADOS: 'auto'
+        run: python trendbot_engine.py
+
+      - name: Commit e push dos dados gerados
+        run: |
+          git config --global user.name "TrendBot Action"
+          git config --global user.email "trendbot@actions.github.com"
+
+          git add docs/data.json
+          git add docs/historico.json
+          git add docs/relatorio_completo.json
+          git add docs/alerta_*.png
+          git add docs/alocacao.png
+
+          if ! git diff --cached --quiet; then
+            git commit -m "update: relatório diário [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          else
+            echo "Sem mudanças nos dados. Nada a subir."
+          fi
