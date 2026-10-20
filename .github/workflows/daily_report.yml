@@ -32,6 +32,16 @@ jobs:
       - name: Rodar testes
         run: pytest tests/ -v
 
+      - name: Rodar testes com outra semente de hash
+        # hash() de string em Python varia por processo (PYTHONHASHSEED). Já
+        # tivemos um bug em que a "simulação determinística" dependia disso: a
+        # suíte passava no PR e quebrava em main, dependendo da sorte. Rodar
+        # uma segunda vez com outra semente fixa pega essa classe inteira de
+        # bugs (ordem de hash) sem tornar o CI aleatório.
+        env:
+          PYTHONHASHSEED: 1
+        run: pytest tests/ -q
+
   relatorio:
     name: Gerar e publicar relatório
     needs: qualidade
