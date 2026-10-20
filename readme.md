@@ -555,7 +555,31 @@ O workflow `.github/workflows/daily_report.yml` roda diariamente:
 
 Segredos: `EMAIL_REMETENTE`, `EMAIL_SENHA`, `EMAIL_DESTINO`.
 Variáveis opcionais: `MOEDAS_ALVO`, `DIAS_HISTORICO`, `PERFIL_RISCO`,
-`CAPITAL_INICIAL`.
+`CAPITAL_INICIAL`, `TENTATIVAS_REDE`, `COINGECKO_API_KEY`.
+
+### Painel do GitHub Pages
+
+O dashboard em `docs/` é estático (HTML/CSS/JS puro, sem build e sem CDN) e
+lê `data.json` + `historico.json`. A lista de histórico tem:
+
+- **filtros** por moeda, por resultado (dentro/fora do intervalo, pendente) e
+  por período (7/30/90/365 dias);
+- **ordenação** por mais recentes, mais antigos ou **maior erro** — este último
+  por erro *relativo* ao preço, senão o Bitcoin ($80 mil) dominaria a lista e
+  esconderia um desvio de 9% na Cardano ($0,22);
+- **paginação** de 10/25/50/100 por página, com controle de páginas e contagem
+  "mostrando X–Y de Z (de N no total)";
+- **estado na URL** (`?moeda=ETH&resultado=ERRO&pagina=2`), para compartilhar
+  uma visão filtrada. Parâmetros inválidos são ignorados.
+
+Os nomes de moeda são **canonizados** no painel: o histórico antigo guarda
+`BITCOIN` e o motor atual grava `BTC`. Sem unificar, o filtro mostrava o mesmo
+ativo duas vezes e a "precisão por moeda" dos cards ficava zerada — o card do
+BTC exibia "Aguardando dados" mesmo com 34 previsões já resolvidas.
+
+O `historico.json` é mantido com no máximo 400 entradas
+(`salvar_historico(historico[-400:])`), então a paginação no cliente continua
+leve indefinidamente.
 
 ---
 

@@ -654,3 +654,78 @@ def test_coingecko_respeita_o_limite_de_historico_da_api_publica(monkeypatch, tm
     monkeypatch.delenv("COINGECKO_API_KEY", raising=False)
     modulo.fetch_coingecko(asset, days=180, cache_dir=str(tmp_path / "c"))
     assert chamadas[-1]["days"] == 180
+
+
+# ---------------------------------------------------------------------------
+# Dashboard: moeda canônica
+# ---------------------------------------------------------------------------
+
+def _aliases_de_moeda_do_dashboard() -> dict[str, str]:
+    """Lê o mapa MOEDAS_CANONICAS de docs/script.js.
+
+    Lê o arquivo de verdade em vez de repetir a tabela aqui: o que importa é
+    que o dashboard consiga unificar os nomes, não que exista uma lista em
+    Python.
+    """
+    import re
+
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+    bloco = re.search(r"const MOEDAS_CANONICAS = \{(.*?)\n\};", js, re.S)
+    assert bloco, "MOEDAS_CANONICAS sumiu de docs/script.js"
+
+    mapa: dict[str, str] = {}
+    for simbolo, _nome, aliases in re.findall(
+        r"(\w+):\s*\{\s*nome:\s*'([^']+)',\s*aliases:\s*\[([^\]]+)\]", bloco.group(1)
+    ):
+        for apelido in re.findall(r"'([^']+)'", aliases):
+            mapa[apelido.strip().upper()] = simbolo
+    return mapa
+
+
+def test_toda_moeda_do_historico_e_do_dashboard_tem_nome_canonico():
+    """Nenhum nome pode sobrar fora do mapa.
+
+    historico.json acumula o padrão legado ("BITCOIN") e o atual ("BTC").
+    Enquanto os dois não forem unificados, o filtro mostra o mesmo ativo duas
+    vezes e a precisão por moeda dos cards zera (data.json usa "BTC").
+    """
+    import json
+
+    mapa = _aliases_de_moeda_do_dashboard()
+    assert mapa, "mapa de moedas vazio"
+
+    historico = json.loads(pathlib.Path("docs/historico.json").read_text(encoding="utf-8"))
+    dados = json.loads(pathlib.Path("docs/data.json").read_text(encoding="utf-8"))
+
+    nomes = {str(h["moeda"]).strip().upper() for h in historico}
+    nomes |= {str(a["moeda"]).strip().upper() for a in dados["ativos"]}
+
+    desconhecidos = sorted(n for n in nomes if n not in mapa)
+    assert not desconhecidos, f"moedas fora do mapa canônico: {desconhecidos}"
+
+
+def test_nomes_legados_e_novos_colapsam_no_mesmo_simbolo():
+    """O legado 'BITCOIN' e o atual 'BTC' precisam virar a mesma moeda.
+
+    Foi exatamente isso que quebrou os cards: com o filtro por igualdade
+    exata, o card do BTC mostrava 'Aguardando dados' mesmo com 34 previsões
+    já resolvidas no histórico.
+    """
+    mapa = _aliases_de_moeda_do_dashboard()
+
+    pares = [("BITCOIN", "BTC"), ("ETHEREUM", "ETH"), ("SOLANA", "SOL"), ("CARDANO", "ADA")]
+    for legado, simbolo in pares:
+        if legado in mapa:
+            assert mapa[legado] == simbolo, f"{legado} deveria canonicalizar para {simbolo}"
+
+    # Tem de ser dentro do corpo da função: checar a substring no arquivo
+    # inteiro não pega nada, porque ela também aparece no filtro da tabela.
+    import re
+
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+    corpo = re.search(r"function acertosPorMoeda\(historico, moeda\) \{(.*?)\n\}", js, re.S)
+    assert corpo, "acertosPorMoeda sumiu de docs/script.js"
+    assert "moedaCanonica(h.moeda)" in corpo.group(1), (
+        "a precisão por moeda voltou a comparar nomes crus; o card do BTC "
+        "mostra 'Aguardando dados' mesmo com histórico resolvido"
+    )

@@ -42,9 +42,51 @@
     <section class="container historico-section" role="region" aria-label="Historico de previsoes">
         <div class="section-header">
             <h2><i class="fas fa-chart-line" aria-hidden="true"></i> Historico de Previsoes</h2>
-            <div class="filter-row" id="filter-row" role="tablist" aria-label="Filtrar por moeda">
-                <button class="filter-btn active" data-moeda="TODOS" role="tab" aria-selected="true">Todos</button>
+            <div class="filter-row" id="filter-row" role="tablist" aria-label="Filtrar por moeda"></div>
+        </div>
+
+        <div class="hist-controls" id="hist-controls">
+            <div class="hist-field">
+                <label for="filtro-resultado">Resultado</label>
+                <select id="filtro-resultado" aria-label="Filtrar por resultado">
+                    <option value="TODOS">Todos</option>
+                    <option value="ACERTO">Dentro do intervalo</option>
+                    <option value="ERRO">Fora do intervalo</option>
+                    <option value="PENDENTE">Aguardando</option>
+                </select>
             </div>
+
+            <div class="hist-field">
+                <label for="filtro-periodo">Periodo</label>
+                <select id="filtro-periodo" aria-label="Filtrar por periodo">
+                    <option value="TODOS">Todo o historico</option>
+                    <option value="7">Ultimos 7 dias</option>
+                    <option value="30">Ultimos 30 dias</option>
+                    <option value="90">Ultimos 90 dias</option>
+                    <option value="365">Ultimos 12 meses</option>
+                </select>
+            </div>
+
+            <div class="hist-field">
+                <label for="filtro-ordem">Ordem</label>
+                <select id="filtro-ordem" aria-label="Ordenar historico">
+                    <option value="recente">Mais recentes</option>
+                    <option value="antigo">Mais antigos</option>
+                    <option value="erro">Maior erro</option>
+                </select>
+            </div>
+
+            <div class="hist-field">
+                <label for="filtro-porpagina">Por pagina</label>
+                <select id="filtro-porpagina" aria-label="Registros por pagina">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <p class="hist-contagem" id="hist-contagem" aria-live="polite"></p>
         </div>
 
         <div class="table-wrapper">
@@ -65,6 +107,8 @@
                 </tbody>
             </table>
         </div>
+
+        <nav class="paginacao" id="paginacao" aria-label="Paginacao do historico"></nav>
     </section>
 
     <section class="container disclaimer-section" role="region" aria-label="Aviso legal">
