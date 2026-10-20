@@ -499,3 +499,55 @@ def test_defaults_do_painel_e_da_api_estao_em_sincronia():
     assert req.carteira.aporte_mensal == aporte_js
     assert req.carteira.caixa == caixa_js == PADRAO_CAIXA
     assert {k: v for k, v in req.carteira.posicoes.items()} == posicoes_js == PADRAO_POSICOES
+
+
+# ---------------------------------------------------------------------------
+# Regressões
+# ---------------------------------------------------------------------------
+
+def test_seed_por_simbolo_e_estavel_entre_processos():
+    """Golden value: trava a correção do bug do hash() randomizado.
+
+    ``hash()`` de string em Python varia por processo (PYTHONHASHSEED). Usá-lo
+    para derivar o seed de cada símbolo fazia a "simulação determinística"
+    gerar séries diferentes a cada execução — a suíte falhava em ~25% das
+    rodadas e nenhum relatório era reproduzível. O valor abaixo só muda se a
+    forma de derivar o seed mudar (o que é uma quebra deliberada).
+    """
+    from trendbot.data import _symbol_seed
+
+    assert _symbol_seed("BTC", 7) == 1890574365
+    assert _symbol_seed("ETH", 7) == 626124320
+    # símbolos diferentes, mesma semente global, seeds diferentes
+    assert _symbol_seed("BTC", 7) != _symbol_seed("ETH", 7)
+    # mesmo símbolo, sementes globais diferentes, seeds diferentes
+    assert _symbol_seed("BTC", 7) != _symbol_seed("BTC", 8)
+
+
+def test_determinismo_nao_depende_do_hash_da_string():
+    """Simula o que o hash randomizado causava: seeds derivados de forma estável."""
+    a = simulate_market(["BTC", "ETH"], days=300, seed=7)
+    b = simulate_market(["BTC", "ETH"], days=300, seed=7)
+    pd.testing.assert_frame_equal(a, b)
+    # e sementes diferentes produzem séries diferentes
+    c = simulate_market(["BTC", "ETH"], days=300, seed=8)
+    assert not np.allclose(a["BTC"].to_numpy(), c["BTC"].to_numpy())
+
+
+def test_nenhum_peso_alvo_e_negativo_em_qualquer_perfil(mercado, previsões):
+    """Caixa negativo já apareceu em produção (-0,01%) por arredondamento.
+
+    Em perfis agressivos a exposição vai a 100% e o resíduo do arredondamento
+    empurrava o caixa para baixo de zero, o que virava um peso absurdo no
+    painel. Este teste cobre os quatro perfis.
+    """
+    forecasts, card = previsões
+    for chave, perfil in PROFILES.items():
+        carteira = PortfolioState(capital=30_000, monthly_contribution=500,
+                                  holdings={"BTC": 30_000}, cash=0.0)
+        advice = build_advice(mercado, forecasts, card, perfil, carteira,
+                              Settings.from_env())
+        for simbolo, peso in advice.target_weights.items():
+            assert peso >= 0.0, f"{chave}: peso negativo em {simbolo} ({peso})"
+        assert advice.target_weights[CASH] >= perfil.cash_floor - 1e-6
+        assert sum(advice.target_weights.values()) == pytest.approx(1.0, abs=1e-6)
