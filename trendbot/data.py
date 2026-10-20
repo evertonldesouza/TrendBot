@@ -423,8 +423,16 @@ def build_market_data(
     data_dir: str = "data",
     seed: int = 20260101,
     allow_stale: bool = True,
+    network_tries: int = 1,
 ) -> MarketData:
-    """Carrega preços do universo pedido, com fallback gracioso."""
+    """Carrega preços do universo pedido, com fallback gracioso.
+
+    ``network_tries`` controla quantas vezes cada endpoint é tentado. O padrão
+    (1) favorece a latência do relatório interativo. Para o job diário use 3+:
+    a API pública da CoinGecko responde 429 com frequência a IPs de datacenter,
+    e com uma tentativa só o relatório caía na simulação e era publicado como
+    se fossem dados reais.
+    """
 
     symbols = [a.symbol for a in assets]
     warnings: list[str] = []
@@ -439,11 +447,11 @@ def build_market_data(
         def coletar(asset: Asset) -> tuple[Asset, pd.Series | None, pd.DataFrame | None]:
             """Tenta Binance (OHLCV completo) e, se falhar, CoinGecko."""
             if source in ("auto", BINANCE):
-                ohlcv = fetch_binance(asset, days, cache_dir)
+                ohlcv = fetch_binance(asset, days, cache_dir, max_retries=network_tries)
                 if ohlcv is not None and not ohlcv.empty:
                     return asset, ohlcv[f"{asset.symbol}_close"].rename(asset.symbol), ohlcv
             if source in ("auto", COINGECKO):
-                s = fetch_coingecko(asset, days, cache_dir)
+                s = fetch_coingecko(asset, days, cache_dir, max_retries=network_tries)
                 if s is not None:
                     return asset, s, None
             return asset, None, None
