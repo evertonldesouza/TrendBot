@@ -16,7 +16,9 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import time
+from contextlib import asynccontextmanager
 from typing import Any
 
 import pandas as pd
@@ -40,12 +42,40 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-app = FastAPI(title="TrendBot", version="2.0.0",
-              description="Orientador quantitativo de investimentos em cripto.")
-
 # cache simples em memória: o custo pesado é a simulação/previsão, não o HTTP
 _CACHE: dict[str, tuple[float, dict]] = {}
 CACHE_TTL = int(os.getenv("CACHE_TTL", "600"))
+
+# estado do aquecimento: o startup faz o trabalho caro (sondar rede, prever,
+# rodar backtest) para que o primeiro clique do usuário já venha do cache.
+_WARMUP: dict[str, Any] = {"status": "pendente", "erro": None, "duracao_s": None}
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    def aquecer() -> None:
+        inicio = time.time()
+        try:
+            req = RelatorioRequest()
+            payload = _montar_relatorio(req)
+            # guarda sob a MESMA chave que o painel vai pedir, senão o
+            # aquecimento só serviria para sondar a rede
+            _CACHE[_chave_cache(req)] = (time.time(), payload)
+            _WARMUP.update(status="pronto", erro=None,
+                           duracao_s=round(time.time() - inicio, 2))
+            logger.info("Aquecimento concluído em %.2fs", time.time() - inicio)
+        except Exception as exc:  # noqa: BLE001 - aquecimento nunca derruba a API
+            _WARMUP.update(status="erro", erro=str(exc),
+                           duracao_s=round(time.time() - inicio, 2))
+            logger.warning("Aquecimento falhou: %s", exc)
+
+    threading.Thread(target=aquecer, daemon=True, name="trendbot-warmup").start()
+    yield
+
+
+app = FastAPI(title="TrendBot", version="2.0.0",
+              description="Orientador quantitativo de investimentos em cripto.",
+              lifespan=lifespan)
 
 
 # ---------------------------------------------------------------------------
@@ -53,19 +83,30 @@ CACHE_TTL = int(os.getenv("CACHE_TTL", "600"))
 # ---------------------------------------------------------------------------
 
 class CarteiraInput(BaseModel):
-    capital: float = Field(default=10_000.0, ge=0)
-    aporte_mensal: float = Field(default=0.0, ge=0)
+    capital: float = Field(default=25_000.0, ge=0)
+    aporte_mensal: float = Field(default=1_000.0, ge=0)
     posicoes: dict[str, float] = Field(default_factory=dict)
     caixa: float = Field(default=0.0, ge=0)
 
 
+# Espelha exatamente os defaults do painel (app/static/app.js). Manter os dois
+# em sincronia faz o aquecimento do startup cair no mesmo hash de cache que a
+# primeira tela do usuário pede — sem isso, o primeiro clique pagaria o custo
+# inteiro (sondagem de rede + previsões + backtest).
+PADRAO_POSICOES = {"BTC": 12_000.0, "ETH": 5_000.0, "SOL": 3_000.0}
+PADRAO_CAIXA = 5_000.0
+PADRAO_ATIVOS = ["bitcoin", "ethereum", "solana", "cardano"]
+
+
 class RelatorioRequest(BaseModel):
     perfil: str = "moderado"
-    ativos: list[str] | None = None
+    ativos: list[str] | None = PADRAO_ATIVOS
     dias: int = 1095
     fonte: str = "auto"
     horizonte: int = 30
-    carteira: CarteiraInput = Field(default_factory=CarteiraInput)
+    carteira: CarteiraInput = Field(
+        default_factory=lambda: CarteiraInput(posicoes=dict(PADRAO_POSICOES),
+                                              caixa=PADRAO_CAIXA))
     backtest: bool = True
 
 
@@ -121,7 +162,8 @@ def _montar_relatorio(req: RelatorioRequest) -> dict:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "versao": app.version, "cache_itens": len(_CACHE)}
+    return {"status": "ok", "versao": app.version, "cache_itens": len(_CACHE),
+            "aquecimento": dict(_WARMUP)}
 
 
 @app.get("/api/opcoes")
@@ -137,6 +179,12 @@ def opcoes() -> dict:
         "fontes": ["auto", "coingecko", "binance", "synthetic", "csv"],
         "caixa": CASH,
     }
+
+
+def _chave_cache(req: "RelatorioRequest") -> str:
+    """Hash estável dos parâmetros — mesma chave para warm-up e requisições."""
+    return hashlib.md5(json.dumps(req.model_dump(), sort_keys=True, default=str)
+                       .encode()).hexdigest()
 
 
 @app.get("/api/relatorio")
@@ -178,8 +226,7 @@ def relatorio_get(
 @app.post("/api/relatorio")
 def relatorio_post(req: RelatorioRequest) -> JSONResponse:
     started = time.time()
-    chave = hashlib.md5(json.dumps(req.model_dump(), sort_keys=True, default=str)
-                        .encode()).hexdigest()
+    chave = _chave_cache(req)
     agora = time.time()
     if chave in _CACHE and agora - _CACHE[chave][0] < CACHE_TTL:
         payload = _CACHE[chave][1]

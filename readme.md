@@ -421,6 +421,21 @@ Parâmetros: `perfil`, `ativos`, `dias`, `fonte`, `capital`, `aporte`,
 
 Respostas ficam em cache por 10 minutos (chave = hash dos parâmetros).
 
+No startup, um thread de **aquecimento** já monta o relatório-padrão em
+segundo plano: a sondagem de rede, as previsões e o backtest acontecem antes do
+primeiro acesso, então a tela inicial responde em ~10 ms. O estado aparece em
+`GET /api/health`:
+
+```json
+{"status": "ok", "versao": "2.0.0", "cache_itens": 1,
+ "aquecimento": {"status": "pronto", "erro": null, "duracao_s": 1.24}}
+```
+
+Os defaults da API (`PADRAO_ATIVOS`, `PADRAO_POSICOES`, `PADRAO_CAIXA` em
+`app/main.py`) replicam os do painel (`state` em `app/static/app.js`). Há um
+teste que falha se os dois divergirem — sem isso a tela inicial perderia o
+cache e pagaria o custo cheio de novo.
+
 ---
 
 ## Instalação

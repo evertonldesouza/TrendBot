@@ -6,6 +6,8 @@ sintético determinístico. ``pytest tests/ -v``
 
 from __future__ import annotations
 
+import pathlib
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -433,3 +435,67 @@ def test_cli_gera_relatorio(tmp_path):
     ])
     assert codigo == 0
     assert (tmp_path / "relatorio.json").exists()
+
+
+# ---------------------------------------------------------------------------
+# API / painel
+# ---------------------------------------------------------------------------
+
+def _bloco_state_do_js() -> str:
+    """Extrai o objeto ``state`` do painel (app/static/app.js)."""
+    import re
+    raiz = pathlib.Path(__file__).resolve().parents[1]
+    js = (raiz / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    inicio = js.index("const state = {")
+    fim = js.index("};", inicio)
+    return js[inicio:fim]
+
+
+def _campo(bloco: str, nome: str) -> str:
+    import re
+    m = re.search(rf"\b{nome}:\s*(.+)", bloco)
+    if not m:
+        raise AssertionError(f"campo '{nome}' não encontrado no state do painel")
+    return m.group(1).strip().rstrip(",")
+
+
+def test_defaults_do_painel_e_da_api_estao_em_sincronia():
+    """O aquecimento do startup só acerta o cache se os defaults casarem.
+
+    Se o painel e a API divergirem, o primeiro clique do usuário não encontra
+    o payload pré-computado e paga o custo inteiro (sondagem de rede +
+    previsões + backtest). Este teste transforma essa divergência silenciosa
+    em falha explícita.
+    """
+    pytest.importorskip("fastapi", reason="fastapi não instalado")
+    import sys
+    raiz = pathlib.Path(__file__).resolve().parents[1]
+    if str(raiz) not in sys.path:
+        sys.path.insert(0, str(raiz))
+    try:
+        from app.main import PADRAO_ATIVOS, PADRAO_CAIXA, PADRAO_POSICOES, RelatorioRequest
+    except Exception as exc:  # noqa: BLE001
+        pytest.skip(f"não foi possível importar a app: {exc}")
+
+    bloco = _bloco_state_do_js()
+    import re
+
+    perfil_js = _campo(bloco, "perfil").strip('"')
+    ativos_js = re.findall(r'"([^"]+)"', _campo(bloco, "ativos"))
+    dias_js = int(_campo(bloco, "dias"))
+    capital_js = float(_campo(bloco, "capital"))
+    aporte_js = float(_campo(bloco, "aporte"))
+    caixa_js = float(_campo(bloco, "caixa"))
+    posicoes_js = {
+        s.upper(): float(v)
+        for s, v in re.findall(r'(\w+):\s*([\d_]+)', _campo(bloco, "posicoes"))
+    }
+
+    req = RelatorioRequest()
+    assert req.perfil == perfil_js
+    assert list(req.ativos or []) == ativos_js == list(PADRAO_ATIVOS)
+    assert req.dias == dias_js
+    assert req.carteira.capital == capital_js
+    assert req.carteira.aporte_mensal == aporte_js
+    assert req.carteira.caixa == caixa_js == PADRAO_CAIXA
+    assert {k: v for k, v in req.carteira.posicoes.items()} == posicoes_js == PADRAO_POSICOES
