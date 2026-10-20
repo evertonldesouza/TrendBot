@@ -11,6 +11,7 @@ atraso, avisos). O resto do sistema confia nesses metadados para se explicar.
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import time
@@ -219,7 +220,16 @@ _REGIME_START = [0.25, 0.60, 0.15]
 
 
 def _symbol_seed(symbol: str, seed: int) -> int:
-    return (abs(hash(f"{symbol}:{seed}")) % (2**31 - 1)) or 1
+    """Seed estável por símbolo.
+
+    ``hash()`` de string em Python é randomizado por processo (PYTHONHASHSEED),
+    então usá-lo aqui fazia a "simulação determinística" gerar séries
+    diferentes a cada execução — o que tornava a suíte de testes instável
+    (~25% de falha) e qualquer relatório irreproduzível. SHA-256 é estável
+    entre processos, versões de Python e plataformas.
+    """
+    digest = hashlib.sha256(f"{symbol}:{seed}".encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big") or 1
 
 
 def simulate_market(

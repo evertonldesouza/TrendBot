@@ -512,9 +512,21 @@ def build_advice(md: MarketData,
     if total_t > 1e-9:
         target = {k: v / total_t for k, v in target.items()}
     target = {k: round(v, 4) for k, v in target.items()}
+    # O resíduo do arredondamento entra no caixa, mas NUNCE pode deixá-lo
+    # negativo: em perfis agressivos a exposição chega a 100% e o arredondamento
+    # empurrava o caixa para -0,01%, o que aparecia como um peso absurdo no
+    # painel. Quando isso acontece, o ajuste vai para a maior posição.
     residuo = round(1.0 - sum(target.values()), 4)
     if abs(residuo) > 1e-9:
-        target[CASH] = round(target.get(CASH, 0.0) + residuo, 4)
+        caixa = round(target.get(CASH, 0.0), 4)
+        if caixa + residuo >= 0:
+            target[CASH] = round(caixa + residuo, 4)
+        else:
+            alvos = [k for k in target if k != CASH and target[k] > 0]
+            if alvos:
+                maior = max(alvos, key=lambda k: target[k])
+                target[maior] = round(target[maior] + residuo + caixa, 4)
+            target[CASH] = 0.0
 
     # --- risco atual x recomendado ---
     ret_cols = [c for c in returns.columns]
