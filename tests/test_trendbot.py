@@ -94,8 +94,20 @@ def test_market_data_filtra_e_ordena():
     assert md.last_date == pd.Timestamp("2024-01-03")
 
 
-def test_build_market_data_cai_para_simulacao_sem_rede(tmp_path):
+def test_build_market_data_cai_para_simulacao_sem_rede(tmp_path, monkeypatch):
+    """Sem provedor nenhum, cai na simulação — e avisa.
+
+    Cuidado: este teste já passou "por acidente", porque o CI não conseguia
+    falar com a CoinGecko (HTTP 401 por range inválido). No momento em que a
+    busca voltou a funcionar, ele quebrou. A ausência de rede tem de ser
+    simulada de forma explícita, nunca dependente do ambiente — do contrário o
+    teste mede a sorte da máquina, não o comportamento do código.
+    """
+    from trendbot import data as modulo
     from trendbot.assets import resolve_assets
+
+    monkeypatch.setattr(modulo, "_http_get_json", lambda *args, **kwargs: None)
+
     md = build_market_data(
         resolve_assets(["bitcoin", "ethereum"]), days=400,
         source="coingecko", cache_dir=str(tmp_path), data_dir=str(tmp_path),
