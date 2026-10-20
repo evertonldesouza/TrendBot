@@ -35,6 +35,10 @@ jobs:
   relatorio:
     name: Gerar e publicar relatório
     needs: qualidade
+    # Em pull_request o checkout sai em HEAD desanexado e GITHUB_REF_NAME vem
+    # como "<n>/merge": o push dos dados gerados tentaria um ref inválido.
+    # Testes rodam em todo PR; publicar, só em main/schedule/dispatch.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
