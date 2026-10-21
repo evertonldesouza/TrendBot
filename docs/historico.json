@@ -1205,9 +1205,9 @@
         "previsao": 0.41,
         "confianca_min": 0.39,
         "confianca_max": 0.44,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 0.23,
+        "erro": -0.18,
+        "acerto": "❌"
     },
     {
         "data": "20/10/2026",
@@ -1215,9 +1215,9 @@
         "previsao": 82033.62,
         "confianca_min": 79116.36,
         "confianca_max": 85397.78,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 84628.2,
+        "erro": 2594.58,
+        "acerto": "✅"
     },
     {
         "data": "20/10/2026",
@@ -1225,9 +1225,9 @@
         "previsao": 2400.98,
         "confianca_min": 2297.06,
         "confianca_max": 2521.96,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2515.51,
+        "erro": 114.53,
+        "acerto": "✅"
     },
     {
         "data": "20/10/2026",
@@ -1235,6 +1235,46 @@
         "previsao": 103.74,
         "confianca_min": 97.37,
         "confianca_max": 111.95,
+        "preco_real": 108.64,
+        "erro": 4.9,
+        "acerto": "✅"
+    },
+    {
+        "data": "21/10/2026",
+        "moeda": "ADA",
+        "previsao": 0.23,
+        "confianca_min": 0.22,
+        "confianca_max": 0.24,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "21/10/2026",
+        "moeda": "BTC",
+        "previsao": 84746.3,
+        "confianca_min": 82869.55,
+        "confianca_max": 86863.68,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "21/10/2026",
+        "moeda": "ETH",
+        "previsao": 2517.34,
+        "confianca_min": 2440.92,
+        "confianca_max": 2614.41,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null
+    },
+    {
+        "data": "21/10/2026",
+        "moeda": "SOL",
+        "previsao": 108.72,
+        "confianca_min": 104.83,
+        "confianca_max": 114.63,
         "preco_real": null,
         "erro": null,
         "acerto": null
