@@ -640,3 +640,84 @@ footer {
 
     .table-wrapper { overflow-x: visible; }
 }
+
+/* ---- Cartão de avaliação do modelo (model card) ---- */
+.model-card {
+    margin: 0 0 1.25rem 0;
+    padding: 1rem 1.15rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+}
+
+.model-card-titulo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+}
+
+.model-card-verdict {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+    line-height: 1.45;
+}
+
+.model-card-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+}
+
+.mc-metric {
+    flex: 1 1 130px;
+    padding: 0.5rem 0.7rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.mc-metric-label {
+    display: block;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+}
+
+.mc-metric-valor {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+}
+
+.mc-metric-valor.up   { color: var(--up); }
+.mc-metric-valor.down { color: var(--down); }
+.mc-metric-valor.warn { color: var(--warn); }
+
+.model-card-notas { list-style: none; }
+
+.model-card-notas li {
+    position: relative;
+    padding-left: 1.1rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.model-card-notas li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: var(--text-faint);
+}

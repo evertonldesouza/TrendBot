@@ -7,6 +7,7 @@ sintético determinístico. ``pytest tests/ -v``
 from __future__ import annotations
 
 import pathlib
+import re
 
 import numpy as np
 import pandas as pd
@@ -871,3 +872,133 @@ def test_linhas_tem_data_label_para_o_layout_de_celular():
         if "loading-cell" in attrs:
             continue
         assert "data-label=" in attrs, f"célula sem data-label: {attrs!r}"
+
+
+# ---------------------------------------------------------------------------
+# Honestidade do histórico e do painel
+# ---------------------------------------------------------------------------
+
+def test_previsao_simulada_nao_entra_no_historico_de_acertos():
+    """Previsão de dado simulado não pode ser conferida contra preço real.
+
+    Ela entraria nas estatísticas de acerto como se fosse uma previsão de
+    verdade. Já aconteceu: há entradas de 20/10/2026 com os valores-âncora do
+    simulador convivendo com entradas reais.
+    """
+    import importlib.util
+    from unittest import mock
+
+    espec = importlib.util.spec_from_file_location("motor_compat", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    with mock.patch.object(motor, "carregar_historico", return_value=[]), \
+         mock.patch.object(motor, "salvar_historico") as salvar, \
+         mock.patch.object(motor, "build_market_data") as bmd, \
+         mock.patch.object(motor, "forecast_universe") as prever:
+
+        bmd.return_value = _mercado_simulado(365)
+        prever.return_value = forecast_universe(_mercado_simulado(365), horizons=(1,))
+
+        motor.fluxo_principal()
+
+    assert salvar.called, "o motor deveria ter chamado salvar_historico"
+    gravado = salvar.call_args[0][0]
+    assert gravado == [], (
+        f"fonte simulada gravou {len(gravado)} entradas no histórico; elas "
+        "seriam conferidas contra o preço real e virariam estatística"
+    )
+
+
+def test_mapa_de_moedas_do_python_e_do_dashboard_concordam():
+    """Duas tabelas de nomes precisam bater: a do Python e a do dashboard.
+
+    Se divergirem, o histórico volta a registrar o mesmo ativo sob dois nomes
+    e a precisão por moeda quebra de novo.
+    """
+    from trendbot.assets import moeda_canonica
+
+    mapa_js = _aliases_de_moeda_do_dashboard()
+    for apelido, canonica_js in mapa_js.items():
+        assert moeda_canonica(apelido) == canonica_js, (
+            f"'{apelido}': Python diz {moeda_canonica(apelido)}, "
+            f"o dashboard diz {canonica_js}"
+        )
+
+
+def test_limpar_historico_remove_simuladas_sem_tocar_nas_reais():
+    """A digital do simulador é exata — tolerância apagaria dado real.
+
+    Uma faixa de 0,5% em torno da âncora marcava 11 entradas, e várias eram
+    reais (BITCOIN de 14/10 a 19/10, da era v1, quando a CoinGecko respondia).
+    """
+    import importlib.util
+
+    espec = importlib.util.spec_from_file_location("limpador", "limpar_historico.py")
+    limpador = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(limpador)
+
+    digitais = limpador.digitais_do_simulador(["BTC", "ETH"])
+    assert digitais, "digital do simulador não calculada"
+
+    historico = [
+        # simulada: bate centavo por centavo com a digital
+        {"data": "20/10/2026", "moeda": "BTC", "previsao": digitais["BTC"],
+         "confianca_min": 1.0, "confianca_max": 2.0, "preco_real": None, "erro": None, "acerto": None},
+        # real: perto da âncora, mas não igual
+        {"data": "14/10/2026", "moeda": "BITCOIN", "previsao": digitais["BTC"] + 2500,
+         "confianca_min": 1.0, "confianca_max": 2.0, "preco_real": 82000.0, "erro": 1.0, "acerto": "✅"},
+        # real, já resolvida, sem nada a ver com a âncora
+        {"data": "13/10/2026", "moeda": "ETH", "previsao": digitais["ETH"] * 1.4,
+         "confianca_min": 1.0, "confianca_max": 2.0, "preco_real": 2400.0, "erro": 2.0, "acerto": "❌"},
+    ]
+
+    limpas, removidas = limpador.remover_simuladas(historico)
+    assert len(removidas) == 1, f"deveria remover só a simulada, removeu {len(removidas)}"
+    assert removidas[0]["moeda"] == "BTC"
+    assert {e["data"] for e in limpas} == {"14/10/2026", "13/10/2026"}
+
+
+def test_deduplicacao_usa_o_nome_canonico():
+    """'BITCOIN' e 'BTC' no mesmo dia são a mesma previsão registrada duas vezes."""
+    import importlib.util
+
+    espec = importlib.util.spec_from_file_location("limpador2", "limpar_historico.py")
+    limpador = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(limpador)
+
+    historico = [
+        {"data": "20/10/2026", "moeda": "BITCOIN", "previsao": 83123.34},
+        {"data": "20/10/2026", "moeda": "BTC", "previsao": 82033.62},
+    ]
+    limpas, removidas = limpador.remover_duplicatas(historico)
+    assert len(limpas) == 1
+    assert len(removidas) == 1
+
+
+def test_painel_nao_cita_mais_o_modelo_antigo():
+    """O rodapé entregava 'Prophet' muito depois de o modelo ter mudado."""
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+
+    assert "Prophet" not in html
+
+
+def test_painel_exibe_a_avaliacao_do_modelo():
+    """Habilidade, cobertura e veredito existem no data.json e nunca apareciam."""
+    import json
+
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+    dados = json.loads(pathlib.Path("docs/data.json").read_text(encoding="utf-8"))
+
+    assert 'id="model-card"' in html
+    assert 'id="footer-cobertura"' in html
+    assert re.search(r"getElementById\('footer-cobertura'\)", js), "rodapé sem wiring"
+    # a definição "function renderModelCard(data) {" contém o mesmo texto da
+    # chamada, então contar substring não prova nada: exija o ponto de chamada
+    # (indentado, com ponto-e-vírgula), que é o que já faltou uma vez antes.
+    assert re.search(r"^\s+renderModelCard\(data\);$", js, re.M), (
+        "renderModelCard existe mas não é chamada em lugar nenhum"
+    )
+    for campo in ("avg_skill", "avg_coverage", "observations", "verdict", "notes"):
+        assert campo in dados["modelo"], f"data.json sem '{campo}' no model card"

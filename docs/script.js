@@ -133,6 +133,39 @@ function renderFonte(data) {
     }
 }
 
+function renderModelCard(data) {
+    const bloco = document.getElementById('model-card');
+    const modelo = data && data.modelo;
+    if (!bloco || !modelo) return;
+
+    const skill = Number(modelo.avg_skill);
+    const cobertura = Number(modelo.avg_coverage);
+    const obs = Number(modelo.observations);
+
+    document.getElementById('mc-verdict').textContent = modelo.verdict || '';
+
+    const metricas = [];
+    if (Number.isFinite(skill)) {
+        metricas.push(['Habilidade fora da amostra', (skill > 0 ? '+' : '') + skill.toFixed(3),
+                       skill > 0.05 ? 'up' : skill < -0.05 ? 'down' : 'warn']);
+    }
+    if (Number.isFinite(cobertura) && obs > 0) {
+        metricas.push(['Cobertura fora da amostra', Math.round(cobertura * 100) + '%',
+                       cobertura >= 0.85 && cobertura <= 0.97 ? 'up' : 'warn']);
+    }
+    metricas.push(['Pontos de teste', String(obs), obs >= 120 ? 'up' : 'warn']);
+
+    document.getElementById('mc-metrics').innerHTML = metricas.map(([rotulo, valor, tom]) =>
+        '<div class="mc-metric"><span class="mc-metric-label">' + rotulo +
+        '</span><span class="mc-metric-valor ' + tom + '">' + valor + '</span></div>'
+    ).join('');
+
+    document.getElementById('mc-notas').innerHTML =
+        (modelo.notes || []).map(n => '<li>' + escapeHtml(n) + '</li>').join('');
+
+    bloco.hidden = false;
+}
+
 function renderCards(data, historico) {
     const grid = document.getElementById('dashboard-grid');
     grid.innerHTML = '';
@@ -216,7 +249,7 @@ function renderCards(data, historico) {
  * ------------------------------------------------------------------------- */
 const MOEDAS_CANONICAS = {
     BTC: { nome: 'Bitcoin',  aliases: ['BTC', 'BITCOIN'] },
-    ETH: { nome: 'Ethereum', aliases: ['ETH', 'ETHEREUM', 'ETHER'] },
+    ETH: { nome: 'Ethereum', aliases: ['ETH', 'ETHEREUM'] },
     SOL: { nome: 'Solana',   aliases: ['SOL', 'SOLANA'] },
     ADA: { nome: 'Cardano',  aliases: ['ADA', 'CARDANO'] },
 };
@@ -622,6 +655,14 @@ function atualizarCobertura(dados) {
     const dentro = resolvidos.filter(h => h.acerto === '\u2705').length;
     const pct = Math.round((dentro / resolvidos.length) * 100);
     alvo.textContent = 'acerto real: ' + pct + '% (' + dentro + '/' + resolvidos.length + ')';
+
+    // o rodapé mostra o realizado (histórico inteiro), não a estimativa de 30
+    // pontos do cartão: dois números parecidos sem rótulo viram confusão
+    const rodape = document.getElementById('footer-cobertura');
+    if (rodape) {
+        rodape.textContent = '\u00b7 realizado: ' + pct + '% em ' + resolvidos.length +
+                             ' previs\u00f5es conferidas';
+    }
 }
 
 function renderHistoricoTabela() {
@@ -798,6 +839,7 @@ async function init() {
 
         renderFreshness(data.ultima_atualizacao);
         renderFonte(data);
+        renderModelCard(data);
         renderSummary(data, historico);
         renderCards(data, historico);
         renderFiltros(historico);

@@ -20,7 +20,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from trendbot.assets import CASH
+from trendbot.assets import CASH, moeda_canonica
 from trendbot.config import PortfolioState, Settings, get_profile
 from trendbot.data import build_market_data, describe_source, ultimos_erros_rede
 from trendbot.forecast import forecast_universe, HORIZONS
@@ -141,7 +141,21 @@ def fluxo_principal() -> None:
             "peso_modelo": round(fc.model_weight, 2),
         })
 
-        if not any(e.get("data") == HOJE and e.get("moeda") == simbolo for e in historico):
+        # Previsão gerada a partir de DADOS SIMULADOS não entra no histórico.
+        # Ela seria conferida contra o preço real no dia seguinte e entraria
+        # nas estatísticas de acerto como se fosse uma previsão de verdade —
+        # foi exatamente o que aconteceu: há entradas de 20/10/2026 com os
+        # valores-âncora do simulador convivendo com entradas reais.
+        if md.source == "synthetic":
+            logger.warning(
+                "Fonte simulada (%s): previsão de %s NÃO será registrada no "
+                "histórico de acertos, para não contaminar as estatísticas.",
+                md.source, simbolo,
+            )
+        elif not any(
+            e.get("data") == HOJE and moeda_canonica(e.get("moeda")) == moeda_canonica(simbolo)
+            for e in historico
+        ):
             historico.append({
                 "data": HOJE,
                 "moeda": simbolo,
@@ -151,6 +165,7 @@ def fluxo_principal() -> None:
                 "preco_real": None,
                 "erro": None,
                 "acerto": None,
+                "fonte": md.source,
             })
 
     if not dados_json:
