@@ -65,9 +65,6 @@ jobs:
 
       - name: Executar motor do TrendBot
         env:
-          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
-          EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
-          EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
           MOEDAS_ALVO: ${{ vars.MOEDAS_ALVO || 'bitcoin,ethereum,solana,cardano' }}
           DIAS_HISTORICO: ${{ vars.DIAS_HISTORICO || '1095' }}
           PERFIL_RISCO: ${{ vars.PERFIL_RISCO || 'moderado' }}
@@ -82,16 +79,23 @@ jobs:
 
           git add docs/data.json
           git add docs/historico.json
-          # O dashboard do GitHub Pages consome só data.json e historico.json.
           # alocacao.png e relatorio_completo.json são artefatos do motor 2.x
           # listados no .gitignore (regenerados todo dia), então NÃO entram
           # aqui: tentar adicioná-los fazia o git add falhar com "path is
-          # ignored" e derrubava o job.
-          # O laço evita quebrar o job se nenhum alerta for gerado (um
-          # `git add docs/alerta_*.png` sem correspondência é erro).
-          for f in docs/alerta_*.png; do
+          # ignored" e derrubava o job. O relatorio_completo.json pesa ~94 KB
+          # por causa das grades de quantis; quem vai para o painel é o
+          # recomendacao.json, bem menor.
+          #
+          # Os laços evitam quebrar o job quando o arquivo não existe (um `git
+          # add` sem correspondência é erro): o motor só gera os alertas e a
+          # recomendação quando consegue montar a carteira.
+          for f in docs/alerta_*.png docs/recomendacao.json; do
             [ -e "$f" ] && git add "$f"
           done
+          # Se o ciclo não gerou recomendação, o arquivo antigo tem de sair:
+          # o painel não pode servir a recomendação de ontem como se fosse de
+          # hoje. O motor já o apaga, mas o git precisa registrar a remoção.
+          [ -e docs/recomendacao.json ] || git rm --ignore-unmatch --cached docs/recomendacao.json
 
           if ! git diff --cached --quiet; then
             git commit -m "update: relatório diário [skip ci]"

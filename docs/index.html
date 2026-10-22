@@ -13,7 +13,7 @@
         <div class="container header-inner">
             <div class="header-left">
                 <h1><i class="fas fa-robot" aria-hidden="true"></i> TrendBot Analytics</h1>
-                <p class="header-sub">Previsoes por IA para as proximas 24h &mdash; modelo Prophet + RSI/SMA</p>
+                <p class="header-sub">Previsoes para as proximas 24h &mdash; ridge regularizado com validacao walk-forward</p>
             </div>
             <div id="freshness-badge" class="badge badge-loading" role="status" aria-live="polite">
                 <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Carregando...
@@ -24,6 +24,13 @@
     <main class="container" role="main" aria-label="Painel de previsoes">
 
         <div id="fonte-banner" class="fonte-banner" role="status" aria-live="polite" hidden></div>
+
+        <section class="model-card" id="model-card" role="region" aria-label="Avaliacao do modelo" hidden>
+            <h2 class="model-card-titulo"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Avaliacao do modelo</h2>
+            <p class="model-card-verdict" id="mc-verdict"></p>
+            <div class="model-card-metrics" id="mc-metrics"></div>
+            <ul class="model-card-notas" id="mc-notas"></ul>
+        </section>
 
         <div id="summary-row" class="summary-row" role="region" aria-label="Resumo das previsoes">
             <div class="scard"><div class="scard-label">Ativos monitorados</div><div class="scard-val" id="s-ativos" aria-live="polite">&mdash;</div></div>
@@ -36,6 +43,66 @@
         <div id="dashboard-grid" class="grid" role="region" aria-label="Cards de ativos">
             <div class="loading"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Buscando previsoes da IA...</div>
         </div>
+
+        <section class="rec" id="rec" role="region" aria-label="Recomendacao de carteira" hidden>
+            <div class="section-header">
+                <h2><i class="fas fa-briefcase" aria-hidden="true"></i> Recomendacao de carteira</h2>
+                <span class="rec-meta" id="rec-meta"></span>
+            </div>
+
+            <p class="rec-fonte-aviso" id="rec-fonte-aviso" hidden>
+                <i class="fas fa-flask" aria-hidden="true"></i>
+                Esta recomendacao foi gerada com <strong>dados simulados</strong>:
+                as APIs de mercado nao responderam neste ciclo.
+            </p>
+
+            <p class="rec-headline" id="rec-headline"></p>
+
+            <div class="rec-grid">
+                <div class="rec-bloco">
+                    <h3 class="rec-subtitulo">Alocacao-alvo</h3>
+                    <table class="rec-tabela">
+                        <thead><tr><th>Ativo</th><th>Atual</th><th>Alvo</th><th>Diferenca</th></tr></thead>
+                        <tbody id="rec-alocacao"></tbody>
+                    </table>
+                </div>
+                <div class="rec-bloco">
+                    <h3 class="rec-subtitulo">Ordens sugeridas</h3>
+                    <table class="rec-tabela">
+                        <thead><tr><th>Acao</th><th>Valor</th><th>Motivo</th></tr></thead>
+                        <tbody id="rec-ordens"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="rec-bloco" id="rec-protecao-bloco" hidden>
+                <h3 class="rec-subtitulo">Protecao: caixa e gatilhos</h3>
+                <p class="rec-texto" id="rec-protecao"></p>
+                <ul class="rec-lista" id="rec-gatilhos"></ul>
+            </div>
+
+            <div class="rec-bloco" id="rec-alertas-bloco" hidden>
+                <h3 class="rec-subtitulo">Alertas</h3>
+                <ul class="rec-lista" id="rec-alertas"></ul>
+            </div>
+
+            <div class="rec-grid">
+                <div class="rec-bloco" id="rec-observar-bloco" hidden>
+                    <h3 class="rec-subtitulo">O que observar</h3>
+                    <ul class="rec-lista" id="rec-observar"></ul>
+                </div>
+                <div class="rec-bloco" id="rec-mudar-bloco" hidden>
+                    <h3 class="rec-subtitulo">O que me faria mudar de ideia</h3>
+                    <ul class="rec-lista" id="rec-mudar"></ul>
+                </div>
+            </div>
+
+            <p class="rec-aviso">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                Isto e uma recomendacao de alocacao, nao uma garantia de retorno.
+                O TrendBot nao executa ordens em corretora nenhuma.
+            </p>
+        </section>
 
     </main>
 
@@ -129,14 +196,14 @@
     <section class="container disclaimer-section" role="region" aria-label="Aviso legal">
         <div class="disclaimer" role="alert">
             <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-            <span>As previsoes sao geradas por modelo estatistico (Prophet) com indicadores tecnicos (RSI, SMA). Nao constituem recomendacao de investimento. Criptomoedas sao ativos de alto risco &mdash; o intervalo de confianca de 90% indica a faixa esperada, nao garante resultado.</span>
+            <span>As previsoes sao geradas por um modelo estatistico (regressao ridge sobre indicadores tecnicos) validado fora da amostra. Nao constituem recomendacao de investimento. Criptomoedas sao ativos de alto risco &mdash; o intervalo de confianca de 90% indica a faixa esperada, nao garante resultado.</span>
         </div>
     </section>
 
     <footer role="contentinfo">
         <div class="container footer-inner">
             <span>Desenvolvido por Everton L. de Souza &copy; 2026</span>
-            <span class="footer-model">Prophet + RSI/SMA | Intervalo de confianca 90%</span>
+            <span class="footer-model">Ridge + walk-forward | intervalo nominal de 90% <span id="footer-cobertura"></span></span>
         </div>
     </footer>
 

@@ -96,3 +96,28 @@ def known_assets() -> tuple[Asset, ...]:
 
 def find_by_symbol(symbol: str) -> Asset:
     return _BY_SYMBOL.get(symbol.upper(), resolve_asset(symbol))
+
+
+# Nomes legados (escritos pelo motor v1) e nomes atuais (símbolos) convivem no
+# histórico: "BITCOIN" e "BTC" são o mesmo ativo. Sem unificar, o mesmo dia é
+# registrado duas vezes e a precisão por moeda quebra.
+#
+# ATENÇÃO: este mapa precisa espelhar MOEDAS_CANONICAS em docs/script.js — o
+# teste test_mapa_de_moedas_do_python_e_do_dashboard_concordam confere os dois.
+_ALIASES_MOEDA: dict[str, str] = {}
+
+
+def _construir_aliases() -> None:
+    for asset in _UNIVERSE:
+        _ALIASES_MOEDA[asset.symbol.upper()] = asset.symbol
+        _ALIASES_MOEDA[asset.name.upper()] = asset.symbol
+        _ALIASES_MOEDA[asset.key.upper()] = asset.symbol
+
+
+_construir_aliases()
+
+
+def moeda_canonica(nome: str) -> str:
+    """Converte qualquer variante de nome no símbolo canônico (BTC, ETH...)."""
+    chave = str(nome or "").strip().upper()
+    return _ALIASES_MOEDA.get(chave, chave)

@@ -1200,46 +1200,6 @@
         "acerto": null
     },
     {
-        "data": "20/10/2026",
-        "moeda": "ADA",
-        "previsao": 0.41,
-        "confianca_min": 0.39,
-        "confianca_max": 0.44,
-        "preco_real": 0.23,
-        "erro": -0.18,
-        "acerto": "❌"
-    },
-    {
-        "data": "20/10/2026",
-        "moeda": "BTC",
-        "previsao": 82033.62,
-        "confianca_min": 79116.36,
-        "confianca_max": 85397.78,
-        "preco_real": 84628.2,
-        "erro": 2594.58,
-        "acerto": "✅"
-    },
-    {
-        "data": "20/10/2026",
-        "moeda": "ETH",
-        "previsao": 2400.98,
-        "confianca_min": 2297.06,
-        "confianca_max": 2521.96,
-        "preco_real": 2515.51,
-        "erro": 114.53,
-        "acerto": "✅"
-    },
-    {
-        "data": "20/10/2026",
-        "moeda": "SOL",
-        "previsao": 103.74,
-        "confianca_min": 97.37,
-        "confianca_max": 111.95,
-        "preco_real": 108.64,
-        "erro": 4.9,
-        "acerto": "✅"
-    },
-    {
         "data": "21/10/2026",
         "moeda": "ADA",
         "previsao": 0.23,

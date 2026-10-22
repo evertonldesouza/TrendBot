@@ -1,21 +1,19 @@
 # --- núcleo numérico / dados -------------------------------------------
+# O modelo é ridge em numpy puro (trendbot/forecast.py) e os quantis saem de
+# np.quantile: scipy e scikit-learn não são importados em lugar nenhum, e
+# ficaram listados só por inércia da época em que o modelo era Prophet.
 numpy>=1.26
 pandas>=2.2
-scipy>=1.11
-requests>=2.31
-python-dotenv>=1.0
+requests>=2.31           # import local em trendbot/data.py: o núcleo roda offline
+python-dotenv>=1.0       # lê o .env local (opcional: o import é protegido)
 
-# --- modelo / visualização ---------------------------------------------
-scikit-learn>=1.3        # usado em utilitários de apoio; o núcleo roda só com numpy
+# --- visualização -------------------------------------------------------
 matplotlib>=3.8
 
 # --- API e painel web ---------------------------------------------------
 fastapi>=0.110
 uvicorn[standard]>=0.27
 pydantic>=2.5
-
-# --- utilitários --------------------------------------------------------
-schedule>=1.2            # agendamento local (modo daemon)
 
 # --- testes -------------------------------------------------------------
 pytest>=8.0

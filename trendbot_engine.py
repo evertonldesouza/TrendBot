@@ -20,7 +20,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from trendbot.assets import CASH
+from trendbot.assets import CASH, moeda_canonica
 from trendbot.config import PortfolioState, Settings, get_profile
 from trendbot.data import build_market_data, describe_source, ultimos_erros_rede
 from trendbot.forecast import forecast_universe, HORIZONS
@@ -141,7 +141,21 @@ def fluxo_principal() -> None:
             "peso_modelo": round(fc.model_weight, 2),
         })
 
-        if not any(e.get("data") == HOJE and e.get("moeda") == simbolo for e in historico):
+        # Previsão gerada a partir de DADOS SIMULADOS não entra no histórico.
+        # Ela seria conferida contra o preço real no dia seguinte e entraria
+        # nas estatísticas de acerto como se fosse uma previsão de verdade —
+        # foi exatamente o que aconteceu: há entradas de 20/10/2026 com os
+        # valores-âncora do simulador convivendo com entradas reais.
+        if md.source == "synthetic":
+            logger.warning(
+                "Fonte simulada (%s): previsão de %s NÃO será registrada no "
+                "histórico de acertos, para não contaminar as estatísticas.",
+                md.source, simbolo,
+            )
+        elif not any(
+            e.get("data") == HOJE and moeda_canonica(e.get("moeda")) == moeda_canonica(simbolo)
+            for e in historico
+        ):
             historico.append({
                 "data": HOJE,
                 "moeda": simbolo,
@@ -151,6 +165,7 @@ def fluxo_principal() -> None:
                 "preco_real": None,
                 "erro": None,
                 "acerto": None,
+                "fonte": md.source,
             })
 
     if not dados_json:
@@ -212,14 +227,30 @@ def fluxo_principal() -> None:
     except Exception as exc:  # noqa: BLE001
         logger.warning("Falha ao gerar gráficos: %s", exc)
 
+    meta = {"gerado_em": datetime.now().isoformat(timespec="seconds"),
+            "fonte": md.source, "perfil": profile.key}
+
     with open(os.path.join(DOCS, "relatorio_completo.json"), "w", encoding="utf-8") as f:
         json.dump({
-            "meta": {"gerado_em": datetime.now().isoformat(timespec="seconds"),
-                     "fonte": md.source, "perfil": profile.key},
+            "meta": meta,
             "modelo": card.as_dict(),
             "previsoes": {s: fc.as_dict() for s, fc in forecasts.items()},
             "recomendacao": advise.as_dict() if advise else None,
         }, f, ensure_ascii=False, indent=2, default=str)
+
+    # O relatório completo tem as grades de quantis e pesa ~94 KB. Publicar
+    # isso todo dia no git (e fazer o painel baixar) para mostrar meia dúzia
+    # de números não compensa: o painel lê este arquivo enxuto, com só a
+    # recomendação. O completo continua sendo gerado para quem depura.
+    if advise is not None:
+        with open(os.path.join(DOCS, "recomendacao.json"), "w", encoding="utf-8") as f:
+            json.dump({"meta": meta, "recomendacao": advise.as_dict()},
+                      f, ensure_ascii=False, indent=2, default=str)
+    elif os.path.exists(os.path.join(DOCS, "recomendacao.json")):
+        # sem recomendação nova, não deixa o painel servir uma velha como se
+        # fosse de hoje
+        os.remove(os.path.join(DOCS, "recomendacao.json"))
+        logger.warning("Sem recomendação neste ciclo: recomendacao.json antigo removido.")
 
     logger.info("Ciclo concluído.")
 
