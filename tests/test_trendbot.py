@@ -1287,3 +1287,29 @@ def test_pendencia_sem_o_preco_do_dia_seguinte_fica_pendente():
     assert motor._resolver_pendencias(historico, precos) == 0
     assert historico[0]["preco_real"] is None
     assert historico[0]["acerto"] is None
+
+
+def test_grafico_de_previsao_gera_o_arquivo(tmp_path):
+    """O leque de projeção desenhava uma data inválida e morria.
+
+    O eixo era montado com np.concatenate([[ultima_data], datas_futuras]), que
+    devolve um array object: o matplotlib 3.11 não converte Timestamps soltos
+    num array object e o limite do eixo virava o ordinal -1017496 (ano -816).
+    Passou despercebido porque o chamador engole a exceção com um warning — os
+    alerta_*.png simplesmente deixavam de existir.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+
+    from trendbot import report
+    from trendbot.forecast import forecast_universe, HORIZONS
+
+    md = _mercado_simulado(400)
+    fcs, _ = forecast_universe(md, horizons=HORIZONS)
+    saida = tmp_path / "alerta_teste.png"
+
+    report.plot_forecast_fan(md.close["BTC"].dropna(), fcs["BTC"], horizon=30,
+                             output=str(saida))
+
+    assert saida.exists(), "plot_forecast_fan não gerou o PNG"
+    assert saida.stat().st_size > 0
