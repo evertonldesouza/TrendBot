@@ -878,7 +878,7 @@ def test_linhas_tem_data_label_para_o_layout_de_celular():
 # Honestidade do histórico e do painel
 # ---------------------------------------------------------------------------
 
-def test_previsao_simulada_nao_entra_no_historico_de_acertos():
+def test_previsao_simulada_nao_entra_no_historico_de_acertos(tmp_path, monkeypatch):
     """Previsão de dado simulado não pode ser conferida contra preço real.
 
     Ela entraria nas estatísticas de acerto como se fosse uma previsão de
@@ -888,7 +888,14 @@ def test_previsao_simulada_nao_entra_no_historico_de_acertos():
     import importlib.util
     from unittest import mock
 
-    espec = importlib.util.spec_from_file_location("motor_compat", "trendbot_engine.py")
+    # o motor escreve docs/data.json e os PNGs de alerta de verdade, então o
+    # teste roda num diretório descartável: sem isso, ele sobrescreve os dados
+    # publicados com o resultado de uma simulação (aconteceu).
+    (tmp_path / "docs").mkdir()
+    origem = pathlib.Path(__file__).resolve().parent.parent / "trendbot_engine.py"
+    monkeypatch.chdir(tmp_path)
+
+    espec = importlib.util.spec_from_file_location("motor_compat", str(origem))
     motor = importlib.util.module_from_spec(espec)
     espec.loader.exec_module(motor)
 
