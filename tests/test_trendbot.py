@@ -1137,3 +1137,153 @@ def test_painel_mostra_a_recomendacao():
     assert re.search(r"catch\s*\(\s*e\s*\)\s*\{[^}]*recomendacao", js), (
         "a busca da recomendação precisa tolerar 404 sem quebrar o resto"
     )
+
+
+# ---------------------------------------------------------------------------
+# Calibração dos intervalos (item 12)
+# ---------------------------------------------------------------------------
+
+def _entrada(previsao, meia, real, fator=None):
+    e = {"data": "01/01/2026", "moeda": "BTC", "previsao": previsao,
+         "confianca_min": previsao - meia, "confianca_max": previsao + meia,
+         "preco_real": real, "erro": 0.0, "acerto": "✅"}
+    if fator is not None:
+        e["calibracao"] = fator
+    return e
+
+
+def test_calibracao_sem_amostra_nao_mexe_no_intervalo():
+    """Com poucos pontos, um quantil extremo é ruído: melhor não ajustar."""
+    import importlib.util
+
+    espec = importlib.util.spec_from_file_location("motor_cal", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    historico = [_entrada(100, 10, 101) for _ in range(10)]
+    fator, amostra = motor.fator_calibracao(historico)
+    assert fator == 1.0
+    assert amostra == 10
+
+
+def test_calibracao_encolhe_a_banda_quando_a_cobertura_passou_do_alvo():
+    """Intervalo que contém 100% dos preços é intervalo que não diz nada."""
+    import importlib.util
+
+    espec = importlib.util.spec_from_file_location("motor_cal2", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    # 60 pontos, todos muito dentro da banda: |z| entre 0,10 e 0,50
+    historico = [_entrada(100, 10, 100 + (i % 5 + 1)) for i in range(60)]
+    fator, amostra = motor.fator_calibracao(historico)
+    assert amostra == 60
+    assert fator < 1.0, "banda super-coberta não foi encolhida"
+    assert fator >= motor.LIMITES_CALIBRACAO[0]
+
+
+def test_calibracao_respeita_o_piso_e_o_teto():
+    """O quantil oscila entre ciclos; sem limites ele afunila a banda demais."""
+    import importlib.util
+
+    espec = importlib.util.spec_from_file_location("motor_cal3", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    piso, teto = motor.LIMITES_CALIBRACAO
+
+    # todos os erros minúsculos: pediria um fator perto de zero
+    historico = [_entrada(100, 1000, 100 + i * 0.01) for i in range(300)]
+    assert motor.fator_calibracao(historico)[0] == piso
+
+    # erro sempre maior que a banda: pediria um fator enorme
+    historico = [_entrada(100, 1, 100 + 50 + i) for i in range(300)]
+    assert motor.fator_calibracao(historico)[0] == teto
+
+
+def test_calibracao_desfaz_o_fator_ja_aplicado_em_cada_entrada():
+    """Sem isso o ajuste não converge a 90%: o ponto fixo parava em ~93%.
+
+    O erro é medido contra a banda já encolhida, então comparar com entradas
+    antigas (banda cheia) sem desfazer o fator mistura duas escalas.
+    """
+    import importlib.util
+
+    espec = importlib.util.spec_from_file_location("motor_cal4", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    # MESMO erro realizado, metade registrada com a banda já encolhida pela
+    # metade. O erro não diminui quando a banda encolhe — só a banda muda.
+    # (Versões anteriores deste teste erraram aqui e/ou deixaram o fator saturar
+    # num dos limites, e ele passava até com a correção removida.)
+    crus = [_entrada(100, 10, 100 + v / 5) for v in range(1, 41)]          # |z| = v/50
+    encolhidos = [_entrada(100, 5, 100 + v / 5, fator=0.5) for v in range(1, 41)]
+    historico = crus + encolhidos
+
+    fator, amostra = motor.fator_calibracao(historico)
+    assert amostra == 80
+
+    # se o fator saturar num dos limites, o teste deixa de medir o que quer
+    piso, teto = motor.LIMITES_CALIBRACAO
+    assert piso < fator < teto, f"saturação em {fator}: o teste não mede nada"
+
+    so_crus, _ = motor.fator_calibracao(crus * 2)
+    assert abs(fator - so_crus) < 1e-9, (
+        "entradas com fator aplicado não foram trazidas de volta à escala original"
+    )
+
+
+def test_pendencia_e_conferida_com_o_preco_do_dia_seguinte():
+    """A previsão vence em D+1, não "no último dia que houver".
+
+    Com o job rodando todo dia, usar o último preço da série dava na mesma —
+    e era o que o código fazia. Mas quando um dia falhava, a previsão de 20/10
+    era conferida contra o preço de 22/10 e virava acerto ou erro por acidente.
+    """
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"BTC": [100.0, 200.0, 300.0]},
+        index=pd.to_datetime(["2026-10-20", "2026-10-21", "2026-10-22"]),
+    )
+    historico = [{
+        "data": "20/10/2026", "moeda": "BTC", "previsao": 100.0,
+        "confianca_min": 150.0, "confianca_max": 250.0,
+        "preco_real": None, "erro": None, "acerto": None,
+    }]
+
+    assert motor._resolver_pendencias(historico, precos) == 1
+    # 21/10 fecha em 200, dentro da banda; pelo critério antigo (iloc[-1])
+    # daria 300 e a mesma banda viraria erro
+    assert historico[0]["preco_real"] == 200.0
+    assert historico[0]["acerto"] == "✅"
+
+
+def test_pendencia_sem_o_preco_do_dia_seguinte_fica_pendente():
+    """Melhor não saber do que saber errado."""
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend2", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"BTC": [100.0]},
+        index=pd.to_datetime(["2026-10-20"]),
+    )
+    historico = [{
+        "data": "20/10/2026", "moeda": "BTC", "previsao": 100.0,
+        "confianca_min": 90.0, "confianca_max": 110.0,
+        "preco_real": None, "erro": None, "acerto": None,
+    }]
+
+    assert motor._resolver_pendencias(historico, precos) == 0
+    assert historico[0]["preco_real"] is None
+    assert historico[0]["acerto"] is None

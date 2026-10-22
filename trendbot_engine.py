@@ -32,6 +32,85 @@ DOCS = "docs"
 HOJE = datetime.now().strftime("%d/%m/%Y")
 
 
+ALVO_COBERTURA = 0.90
+MINIMO_AMOSTRA_CALIBRACAO = 40
+AMOSTRAS_PARA_CONFIANCA_TOTAL = 200
+LIMITES_CALIBRACAO = (0.80, 1.05)
+
+
+def _quantile(ordenados: list[float], q: float) -> float:
+    """Quantil por interpolação linear, sem depender de numpy aqui."""
+    if not ordenados:
+        return 0.0
+    if len(ordenados) == 1:
+        return ordenados[0]
+    pos = q * (len(ordenados) - 1)
+    baixo = int(pos)
+    alto = min(baixo + 1, len(ordenados) - 1)
+    frac = pos - baixo
+    return ordenados[baixo] * (1 - frac) + ordenados[alto] * frac
+
+
+def fator_calibracao(historico: list[dict]) -> tuple[float, int]:
+    """Encolhe o intervalo para que a cobertura realize o alvo de 90%.
+
+    O intervalo publicado é o q05–q95 da distribuição dos resíduos, então
+    deveria conter 90% dos preços realizados. Na prática continha 96%: a banda
+    era larga demais, e um intervalo que sempre acerta é um intervalo que não
+    diz nada.
+
+    O erro é medido em unidades da própria banda (z = erro / meia-largura), o
+    que permite juntar moedas e épocas de volatilidade diferente numa única
+    amostra. O fator é o quantil 90% de |z|.
+
+    Cada entrada guarda o fator que estava em vigor quando foi gerada, e aqui
+    o erro é desfeito antes de medir (z_bruto = z_medido * fator_da_entrada).
+    Sem isso o ajuste não converge: o fator novo seria calculado sobre uma
+    banda já encolhida, e o ponto fixo pararia em ~93% em vez de 90%.
+
+    Duas proteções, porque com amostra pequena um quantil extremo é ruído:
+      - o peso do fator cresce com o tamanho da amostra (com 40 pontos quase
+        não mexe, com 200 aplica inteiro);
+      - limites duros em 0,80 e 1,05. O piso importa: simulando a estimativa
+        ao longo de meses, o quantil oscila e chegava a 0,75 em alguns ciclos,
+        o que deixaria a banda estreita demais (cobertura cairia a ~86%). Em
+        0,80 o pior caso fica em ~89%: errar para o lado conservador aqui custa
+        menos do que um intervalo que não cobre o que promete.
+    """
+    z: list[float] = []
+    for e in historico:
+        if e.get("acerto") is None:
+            continue
+        try:
+            previsao = float(e["previsao"])
+            minimo = float(e["confianca_min"])
+            maximo = float(e["confianca_max"])
+            real = float(e["preco_real"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        meia = (maximo - minimo) / 2.0
+        if meia <= 0:
+            continue
+        # entradas anteriores à calibração não têm o campo: foram geradas com 1.0
+        try:
+            aplicado = float(e.get("calibracao", 1.0) or 1.0)
+        except (TypeError, ValueError):
+            aplicado = 1.0
+        if aplicado <= 0:
+            aplicado = 1.0
+        z.append(abs((real - previsao) / meia) * aplicado)
+
+    if len(z) < MINIMO_AMOSTRA_CALIBRACAO:
+        return 1.0, len(z)
+
+    z.sort()
+    bruto = _quantile(z, ALVO_COBERTURA)
+    peso = min(1.0, len(z) / AMOSTRAS_PARA_CONFIANCA_TOTAL)
+    fator = 1.0 + (bruto - 1.0) * peso
+    piso, teto = LIMITES_CALIBRACAO
+    return max(piso, min(teto, fator)), len(z)
+
+
 def carregar_historico(caminho: str = "docs/historico.json") -> list[dict]:
     if os.path.exists(caminho):
         try:
@@ -59,26 +138,50 @@ def _status_legado(variacao: float) -> tuple[str, str]:
     return "NEUTRO", "⚖️"
 
 
+def _mapa_de_precos_por_dia(precos) -> dict[str, dict]:
+    """symbol -> {data: preço de fechamento}, para conferir cada previsão
+    no dia em que ela vence, e não "no último dia que tiver"."""
+    import pandas as pd
+
+    mapa: dict[str, dict] = {}
+    for simbolo in getattr(precos, "columns", []):
+        serie = precos[simbolo].dropna()
+        mapa[simbolo] = {
+            pd.Timestamp(i).date(): float(v) for i, v in serie.items()
+        }
+    return mapa
+
+
 def _resolver_pendencias(historico: list[dict], precos) -> int:
     """Fecha previsões passadas comparando com o preço realizado.
 
     Critério de acerto (inalterado desde a v1): o preço real caiu dentro do
     intervalo de 90%. Não é "acertar o preço" — é o intervalo ser honesto.
+
+    A previsão é para o dia seguinte, então é o fechamento de D+1 que vale.
+    A versão anterior usava o ÚLTIMO preço da série, o que funcionava só
+    enquanto o job rodava todo dia: se um dia falhasse, a previsão de 20/10
+    era conferida contra o preço de 22/10 — e virava acerto ou erro por
+    acidente. Quando o D+1 não está na série, a entrada fica pendente: é
+    melhor não saber do que saber errado.
     """
+    mapa = _mapa_de_precos_por_dia(precos)
     resolvidas = 0
     for entrada in historico:
         if entrada.get("preco_real") is not None:
             continue
         simbolo = entrada.get("moeda")
-        if simbolo not in getattr(precos, "columns", []):
+        if simbolo not in mapa:
             continue
         try:
             data = datetime.strptime(entrada["data"], "%d/%m/%Y")
         except (KeyError, ValueError):
             continue
-        if datetime.now() - data < timedelta(days=1):
+
+        preco_real = mapa[simbolo].get((data + timedelta(days=1)).date())
+        if preco_real is None:
             continue
-        preco_real = float(precos[simbolo].iloc[-1])
+
         entrada["preco_real"] = round(preco_real, 2)
         entrada["erro"] = round(preco_real - float(entrada["previsao"]), 2)
         entrada["acerto"] = "✅" if (
@@ -116,6 +219,19 @@ def fluxo_principal() -> None:
     if resolvidas:
         logger.info("%d previsões conferidas com o preço realizado", resolvidas)
 
+    fator, amostra = fator_calibracao(historico)
+    if fator != 1.0:
+        logger.info(
+            "Calibração dos intervalos: fator %.3f estimado com %d pontos "
+            "resolvidos (alvo de cobertura %.0f%%).", fator, amostra,
+            ALVO_COBERTURA * 100,
+        )
+    else:
+        logger.info(
+            "Calibração dos intervalos: sem ajuste (%d pontos resolvidos, "
+            "mínimo é %d).", amostra, MINIMO_AMOSTRA_CALIBRACAO,
+        )
+
     dados_json: list[dict] = []
     for simbolo, fc in forecasts.items():
         preco = fc.price
@@ -123,6 +239,10 @@ def fluxo_principal() -> None:
         previsao = preco * (1 + h1.median_return)
         conf_min = preco * (1 + h1.lower)
         conf_max = preco * (1 + h1.upper)
+
+        # encolhe os dois lados em direção à mediana, mantendo a assimetria
+        conf_min = previsao - (previsao - conf_min) * fator
+        conf_max = previsao + (conf_max - previsao) * fator
         variacao = ((previsao - preco) / preco) * 100
         status, emoji = _status_legado(variacao)
 
@@ -166,6 +286,7 @@ def fluxo_principal() -> None:
                 "erro": None,
                 "acerto": None,
                 "fonte": md.source,
+                "calibracao": round(fator, 4),
             })
 
     if not dados_json:
@@ -195,6 +316,13 @@ def fluxo_principal() -> None:
             "ultima_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "fonte": fonte,
             "modelo": card.as_dict(),
+            "calibracao": {
+                "alvo_cobertura": ALVO_COBERTURA,
+                "fator": round(fator, 4),
+                "amostra": amostra,
+                "minimo_amostra": MINIMO_AMOSTRA_CALIBRACAO,
+                "ajustado": fator != 1.0,
+            },
             "ativos": dados_json,
         }, f, ensure_ascii=False, indent=4)
     logger.info("docs/data.json atualizado (%d ativos) | fonte: %s",
