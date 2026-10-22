@@ -493,6 +493,37 @@ Gera em `out/`: `relatorio.json`, `alocacao.png`, `risco.png`, `backtest.png` e
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+### Deploy (Docker)
+
+A API tem um `Dockerfile` na raiz. É o caminho mais curto para pôr o serviço no
+ar em qualquer lugar que rode contêiner (Render, Railway, Fly.io, Cloud Run):
+
+```bash
+docker build -t trendbot .
+docker run --rm -p 8000:8000 -e FONTE_DADOS=auto trendbot
+curl localhost:8000/api/health
+```
+
+Algumas decisões do `Dockerfile`:
+
+- **Sem segredo nenhum na imagem.** O único opcional é `COINGECKO_API_KEY`, que
+  entra por variável de ambiente em tempo de execução — nunca no build.
+- **`MPLBACKEND=Agg`.** Os gráficos rodam sem tela; numa imagem enxuta, sem
+  isso o matplotlib procura um display que não existe.
+- **`PORT` é lido pela app**, então plataformas que injetam a porta funcionam
+  sem mudança de código.
+- **Healthcheck em `/api/health`**, que responde sem tocar em rede — barato o
+  suficiente para rodar a cada minuto.
+- **Usuário não-root** (uid 1000), criado depois do `COPY` para não brigar com
+  permissão.
+
+O `.dockerignore` exclui `docs/`, `tests/` e artefatos locais: o repositório
+carrega bem mais do que a API precisa, e `docs/` é ~1 MB de dados publicados
+que o painel estático serve por conta própria.
+
+**Nenhum deploy executa ordens.** O sistema devolve uma recomendação de
+alocação; a API não tem — e não deve ter — credencial de corretora.
+
 ### Variáveis de ambiente
 
 ```env
