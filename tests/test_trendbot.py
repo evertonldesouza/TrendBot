@@ -1009,3 +1009,53 @@ def test_painel_exibe_a_avaliacao_do_modelo():
     )
     for campo in ("avg_skill", "avg_coverage", "observations", "verdict", "notes"):
         assert campo in dados["modelo"], f"data.json sem '{campo}' no model card"
+
+
+def test_dotenv_e_lido_de_verdade(tmp_path, monkeypatch):
+    """O .env.example era decorativo: nada carregava o arquivo.
+
+    Quem copiasse .env.example para .env e preenchesse não via efeito nenhum.
+    """
+    from trendbot.config import Settings
+
+    (tmp_path / ".env").write_text("MOEDAS_ALVO=bitcoin,solana\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("MOEDAS_ALVO", raising=False)
+
+    assert [a.symbol for a in Settings.from_env().assets] == ["BTC", "SOL"]
+
+
+def test_dotenv_nao_atropela_quem_ja_define_a_variavel(tmp_path, monkeypatch):
+    """No CI a variável vem do ambiente e tem de ganhar do arquivo."""
+    from trendbot.config import Settings
+
+    (tmp_path / ".env").write_text("MOEDAS_ALVO=bitcoin\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MOEDAS_ALVO", "cardano")
+
+    assert [a.symbol for a in Settings.from_env().assets] == ["ADA"]
+
+
+def test_workflow_nao_injeta_segredos_de_email():
+    """A v2 não manda e-mail, mas o workflow injetava os três segredos."""
+    from pathlib import Path as _P
+    import re as _re
+
+    yml = _P(".github/workflows/daily_report.yml").read_text(encoding="utf-8")
+    assert not _re.search(r"\bEMAIL_(REMETENTE|SENHA|DESTINO)\b", yml), (
+        "o workflow voltou a injetar segredo de e-mail; nada no projeto lê isso"
+    )
+
+
+def test_requirements_nao_lista_dependencia_morta():
+    """scipy, scikit-learn e schedule não são importados em lugar nenhum.
+
+    Ficaram na lista por inércia, da época em que o modelo era Prophet.
+    """
+    linhas = pathlib.Path("requirements.txt").read_text(encoding="utf-8").splitlines()
+    # sem os comentários: a justificativa cita os nomes de propósito
+    pacotes = [ln.split("#")[0].strip() for ln in linhas if ln.strip()]
+    for morta in ("schedule", "scipy", "scikit-learn"):
+        assert not any(p.startswith(morta) for p in pacotes), (
+            f"{morta} voltou ao requirements.txt sem ser importado em lugar nenhum"
+        )

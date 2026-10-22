@@ -65,9 +65,6 @@ jobs:
 
       - name: Executar motor do TrendBot
         env:
-          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
-          EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
-          EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
           MOEDAS_ALVO: ${{ vars.MOEDAS_ALVO || 'bitcoin,ethereum,solana,cardano' }}
           DIAS_HISTORICO: ${{ vars.DIAS_HISTORICO || '1095' }}
           PERFIL_RISCO: ${{ vars.PERFIL_RISCO || 'moderado' }}

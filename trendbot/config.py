@@ -9,6 +9,26 @@ from typing import Any
 from .assets import Asset, resolve_assets
 
 
+def _carregar_dotenv() -> None:
+    """Lê o .env do diretório atual, se python-dotenv estiver instalado.
+
+    Sem isso o .env.example era decorativo: nada no projeto carregava o
+    arquivo, então quem seguisse a documentação não via efeito nenhum.
+    Variáveis já presentes no ambiente ganham (é o caso do CI), porque
+    load_dotenv não sobrescreve por padrão.
+    """
+    try:
+        from dotenv import find_dotenv, load_dotenv
+    except ImportError:
+        return
+    # find_dotenv() sem usecwd procura a partir do ARQUIVO que chamou (aqui,
+    # trendbot/config.py), e não de onde o usuário rodou o comando — então
+    # nunca acharia o .env da raiz do projeto.
+    caminho = find_dotenv(usecwd=True)
+    if caminho:
+        load_dotenv(caminho)
+
+
 def _env_float(name: str, default: float) -> float:
     try:
         return float(os.getenv(name, default))
@@ -111,6 +131,7 @@ class Settings:
 
     @classmethod
     def from_env(cls, **overrides: Any) -> "Settings":
+        _carregar_dotenv()
         raw_assets = os.getenv("MOEDAS_ALVO", "bitcoin,ethereum,solana,cardano")
         assets = resolve_assets([a for a in raw_assets.split(",") if a.strip()])
         cfg = cls(

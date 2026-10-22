@@ -553,9 +553,13 @@ O workflow `.github/workflows/daily_report.yml` roda diariamente:
    funcionando sem alteração, e o histórico de acertos segue sendo conferido
    dia após dia (critério: preço realizado dentro do intervalo de 90%).
 
-Segredos: `EMAIL_REMETENTE`, `EMAIL_SENHA`, `EMAIL_DESTINO`.
-Variáveis opcionais: `MOEDAS_ALVO`, `DIAS_HISTORICO`, `PERFIL_RISCO`,
-`CAPITAL_INICIAL`, `TENTATIVAS_REDE`, `COINGECKO_API_KEY`.
+**Nenhum segredo é obrigatório.** Opcionais: variáveis `MOEDAS_ALVO`,
+`DIAS_HISTORICO`, `PERFIL_RISCO`, `CAPITAL_INICIAL`, `TENTATIVAS_REDE`, e o
+segredo `COINGECKO_API_KEY` (a API pública já responde, mas limita o histórico
+a 365 dias).
+
+As variáveis `EMAIL_*` saíram: a versão 2 não envia e-mail, mas o workflow
+seguia injetando os três segredos como se enviasse.
 
 ### Painel do GitHub Pages
 
