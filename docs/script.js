@@ -160,8 +160,23 @@ function renderModelCard(data) {
         '</span><span class="mc-metric-valor ' + tom + '">' + valor + '</span></div>'
     ).join('');
 
+    const notas = (modelo.notes || []).slice();
+
+    // Se os intervalos foram encolhidos por calibração, isso tem de aparecer:
+    // a banda exibida não é a que o modelo produziu, e o leitor merece saber
+    // com quantos pontos o ajuste foi estimado.
+    const cal = data.calibracao;
+    if (cal && cal.ajustado && Number(cal.fator) && Number(cal.fator) !== 1) {
+        const pct = Math.round((1 - Number(cal.fator)) * 100);
+        notas.push('Intervalos reduzidos em ' + pct + '% por calibração, para '
+            + 'perseguir ' + Math.round(Number(cal.alvo_cobertura) * 100)
+            + '% de cobertura. Estimado com ' + cal.amostra
+            + ' previsões já conferidas — amostra pequena significa ajuste '
+            + 'menor, de propósito.');
+    }
+
     document.getElementById('mc-notas').innerHTML =
-        (modelo.notes || []).map(n => '<li>' + escapeHtml(n) + '</li>').join('');
+        notas.map(n => '<li>' + escapeHtml(n) + '</li>').join('');
 
     bloco.hidden = false;
 }

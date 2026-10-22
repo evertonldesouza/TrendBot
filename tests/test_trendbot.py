@@ -1333,3 +1333,12 @@ def test_perfil_sem_chave_usa_o_padrao():
     assert get_profile(None).key == DEFAULT_PROFILE
     assert get_profile("").key == DEFAULT_PROFILE
     assert get_profile("  ").key == DEFAULT_PROFILE
+
+
+def test_painel_revela_quando_os_intervalos_foram_calibrados():
+    """A banda exibida não é a que o modelo produziu: isso tem de estar dito."""
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+
+    assert "data.calibracao" in js, "o painel ignora a calibração publicada"
+    assert 'id="model-card"' in html
