@@ -32,6 +32,14 @@ DOCS = "docs"
 HOJE = datetime.now().strftime("%d/%m/%Y")
 
 
+# Quantas previsões o histórico guarda. Com 4 ativos por dia dá ~100 dias, o
+# que é mais que suficiente para a calibração dos intervalos (ela quer ~200
+# pontos resolvidos). Não é o mesmo que a janela do backtest: aquele usa dados
+# de mercado (3,5 anos), este é o histórico de acertos divulgado — coisas
+# diferentes, e o README diz isso para ninguém ler um como se fosse o outro.
+# Cada entrada tem ~250 bytes, então subir muito aqui vira peso diário no git.
+LIMITE_HISTORICO = 400
+
 ALVO_COBERTURA = 0.90
 MINIMO_AMOSTRA_CALIBRACAO = 40
 AMOSTRAS_PARA_CONFIANCA_TOTAL = 200
@@ -333,7 +341,21 @@ def fluxo_principal() -> None:
         for motivo in detalhes:
             logger.warning("  motivo: %s", motivo)
 
-    salvar_historico(historico[-400:])
+    if len(historico) > LIMITE_HISTORICO:
+        descartadas = len(historico) - LIMITE_HISTORICO
+        logger.warning(
+            "Histórico cheio (%d entradas, teto de %d): %d previsões antigas "
+            "deixarão de constar. A estatística de acerto passa a cobrir só a "
+            "janela retida — não é a mesma coisa que o backtest de 3,5 anos.",
+            len(historico), LIMITE_HISTORICO, descartadas,
+        )
+    salvar_historico(historico[-LIMITE_HISTORICO:])
+
+    # Fora do try de propósito: se a geração dos gráficos falhar, o bloco
+    # abaixo segue e 'advise' precisa existir. Ficava dentro e, quando o
+    # plot_forecast_fan lançava exceção, o ciclo morria mais adiante com
+    # UnboundLocalError — foi o que o pandas 3 expôs.
+    advise = None
 
     # gráficos legados (mesmos nomes de arquivo que o dashboard antigo usa)
     try:
@@ -342,7 +364,6 @@ def fluxo_principal() -> None:
             report.plot_forecast_fan(
                 md.close[simbolo].dropna(), fc, horizon=30,
                 output=os.path.join(DOCS, f"alerta_{simbolo.lower()}.png"))
-        advise = None
         try:
             from trendbot.advisor import build_advice
             carteira = PortfolioState(capital=float(os.getenv("CAPITAL_INICIAL", "10000")),
