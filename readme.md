@@ -590,6 +590,24 @@ lê `data.json` + `historico.json`. A lista de histórico tem:
 - **layout em cards** abaixo de 640px: a tabela de 8 colunas vira uma lista
   rotulada no celular.
 
+#### Recomendação de carteira
+
+Abaixo dos cards, o painel mostra a recomendação que o motor calcula:
+alocação-alvo contra a atual, as ordens sugeridas com o motivo de cada uma, o
+colchão de caixa com os gatilhos de proteção, os alertas, e a narrativa com o
+que observar e o que faria o sistema mudar de ideia.
+
+Ela vem de `docs/recomendacao.json`, e não do `relatorio_completo.json`: este
+tem ~94 KB de grades de quantis que o painel não lê, e publicar isso todo dia
+no git para exibir meia dúzia de números não compensa. O arquivo do painel tem
+~8,5 KB. O relatório completo continua sendo gerado, para quem depura.
+
+Duas proteções: se o ciclo não consegue montar a carteira, o motor **apaga** o
+arquivo em vez de deixar a recomendação de ontem no ar como se fosse de hoje; e
+como a recomendação carrega a própria fonte, o painel avisa em destaque quando
+ela foi gerada com dados simulados — os dois arquivos podem cair no simulador em
+ciclos diferentes.
+
 Os nomes de moeda são **canonizados** no painel: o histórico antigo guarda
 `BITCOIN` e o motor atual grava `BTC`. Sem unificar, o filtro mostrava o mesmo
 ativo duas vezes e a "precisão por moeda" dos cards ficava zerada — o card do
