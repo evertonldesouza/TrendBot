@@ -721,3 +721,165 @@ footer {
     left: 0;
     color: var(--text-faint);
 }
+
+/* ---- Recomendação de carteira ---- */
+.rec {
+    margin: 0 0 1.5rem 0;
+    padding: 1.25rem 0 0 0;
+    border-top: 1px solid var(--border);
+}
+
+.rec-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.rec-headline {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 1.1rem;
+}
+
+.rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rec-bloco {
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.rec-subtitulo {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.7rem;
+}
+
+.rec-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.rec-tabela th {
+    text-align: left;
+    padding: 0.3rem 0.5rem 0.3rem 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--border);
+}
+
+.rec-tabela td {
+    padding: 0.4rem 0.5rem 0.4rem 0;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+}
+
+.rec-tabela td.up   { color: var(--up); }
+.rec-tabela td.down { color: var(--down); }
+
+.rec-motivo {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    font-variant-numeric: normal;
+}
+
+.rec-texto {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+}
+
+.rec-lista { list-style: none; }
+
+.rec-lista li {
+    position: relative;
+    padding-left: 1.1rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.rec-lista li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: var(--text-faint);
+}
+
+.rec-alerta-atencao { color: var(--warn); }
+.rec-alerta-critico { color: var(--down); }
+.rec-alerta-info    { color: var(--text-muted); }
+
+.rec-lista li strong { color: var(--text); }
+
+.rec-aviso {
+    margin-top: 1rem;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--radius-sm);
+}
+
+@media (max-width: 640px) {
+    .rec-grid { grid-template-columns: 1fr; }
+
+    .rec-tabela thead { display: none; }
+
+    .rec-tabela tr {
+        display: block;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .rec-tabela td {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.15rem 0;
+        border: none;
+    }
+
+    .rec-tabela td::before {
+        content: attr(data-label);
+        color: var(--text-faint);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .rec-motivo { display: block; }
+    .rec-motivo::before { content: none; }
+}
+
+.rec-fonte-aviso {
+    margin-bottom: 0.8rem;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--warn);
+    background: var(--surface2);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--radius-sm);
+}
+
+.rec-fonte-divergente { border-top-color: var(--warn); }

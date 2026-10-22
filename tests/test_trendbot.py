@@ -1059,3 +1059,81 @@ def test_requirements_nao_lista_dependencia_morta():
         assert not any(p.startswith(morta) for p in pacotes), (
             f"{morta} voltou ao requirements.txt sem ser importado em lugar nenhum"
         )
+
+
+def test_motor_publica_recomendacao_enxuta_para_o_painel(tmp_path, monkeypatch):
+    """O relatório completo tem 94 KB de grades de quantis que o painel não lê.
+
+    Publicar isso todo dia no git, e fazer o navegador baixar, para mostrar
+    meia dúzia de números não compensa: o motor escreve um arquivo à parte.
+    """
+    import importlib.util
+    import json as _json
+    from unittest import mock
+
+    (tmp_path / "docs").mkdir()
+    origem = pathlib.Path(__file__).resolve().parent.parent / "trendbot_engine.py"
+    monkeypatch.chdir(tmp_path)
+    espec = importlib.util.spec_from_file_location("motor_rec", str(origem))
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    with mock.patch.object(motor, "carregar_historico", return_value=[]), \
+         mock.patch.object(motor, "salvar_historico"):
+        motor.fluxo_principal()
+
+    docs = tmp_path / "docs"
+    completo = docs / "relatorio_completo.json"
+    enxuto = docs / "recomendacao.json"
+
+    assert completo.exists(), "o relatório completo deveria continuar sendo gerado"
+    assert enxuto.exists(), "recomendacao.json não foi publicado"
+
+    dados = _json.loads(enxuto.read_text(encoding="utf-8"))
+    assert set(dados) == {"meta", "recomendacao"}
+    assert "previsoes" not in dados, "as grades de quantis voltaram para o arquivo do painel"
+    assert dados["meta"]["fonte"], "sem a fonte o painel não pode avisar sobre simulação"
+
+    # o enxuto tem de ser bem menor, senão não vale o arquivo extra
+    assert enxuto.stat().st_size < completo.stat().st_size / 4
+
+
+def test_sem_recomendacao_nova_o_painel_nao_serve_a_antiga(tmp_path, monkeypatch):
+    """Uma recomendação de ontem servida como se fosse de hoje é pior que nenhuma."""
+    import importlib.util
+    from unittest import mock
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "recomendacao.json").write_text("{}", encoding="utf-8")
+    origem = pathlib.Path(__file__).resolve().parent.parent / "trendbot_engine.py"
+    monkeypatch.chdir(tmp_path)
+    espec = importlib.util.spec_from_file_location("motor_rec2", str(origem))
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    # build_advice é importado DENTRO da função, então patch no módulo de origem
+    with mock.patch.object(motor, "carregar_historico", return_value=[]), \
+         mock.patch.object(motor, "salvar_historico"), \
+         mock.patch("trendbot.advisor.build_advice", return_value=None):
+        motor.fluxo_principal()
+
+    assert not (tmp_path / "docs" / "recomendacao.json").exists()
+
+
+def test_painel_mostra_a_recomendacao():
+    """A recomendação é calculada e publicada, e o painel precisa exibi-la."""
+    html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+
+    assert 'id="rec"' in html
+    # a definição contém o mesmo texto da chamada: exija o ponto de chamada
+    assert re.search(r"renderRecomendacao\(await res\.json\(\), data\)", js), (
+        "renderRecomendacao não é chamada, ou é chamada sem o data.json "
+        "(sem ele o painel não compara a fonte da recomendação)"
+    )
+    assert "recomendacao.json" in js
+
+    # ausente antes da primeira execução não pode derrubar o painel inteiro
+    assert re.search(r"catch\s*\(\s*e\s*\)\s*\{[^}]*recomendacao", js), (
+        "a busca da recomendação precisa tolerar 404 sem quebrar o resto"
+    )

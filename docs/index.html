@@ -44,6 +44,66 @@
             <div class="loading"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Buscando previsoes da IA...</div>
         </div>
 
+        <section class="rec" id="rec" role="region" aria-label="Recomendacao de carteira" hidden>
+            <div class="section-header">
+                <h2><i class="fas fa-briefcase" aria-hidden="true"></i> Recomendacao de carteira</h2>
+                <span class="rec-meta" id="rec-meta"></span>
+            </div>
+
+            <p class="rec-fonte-aviso" id="rec-fonte-aviso" hidden>
+                <i class="fas fa-flask" aria-hidden="true"></i>
+                Esta recomendacao foi gerada com <strong>dados simulados</strong>:
+                as APIs de mercado nao responderam neste ciclo.
+            </p>
+
+            <p class="rec-headline" id="rec-headline"></p>
+
+            <div class="rec-grid">
+                <div class="rec-bloco">
+                    <h3 class="rec-subtitulo">Alocacao-alvo</h3>
+                    <table class="rec-tabela">
+                        <thead><tr><th>Ativo</th><th>Atual</th><th>Alvo</th><th>Diferenca</th></tr></thead>
+                        <tbody id="rec-alocacao"></tbody>
+                    </table>
+                </div>
+                <div class="rec-bloco">
+                    <h3 class="rec-subtitulo">Ordens sugeridas</h3>
+                    <table class="rec-tabela">
+                        <thead><tr><th>Acao</th><th>Valor</th><th>Motivo</th></tr></thead>
+                        <tbody id="rec-ordens"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="rec-bloco" id="rec-protecao-bloco" hidden>
+                <h3 class="rec-subtitulo">Protecao: caixa e gatilhos</h3>
+                <p class="rec-texto" id="rec-protecao"></p>
+                <ul class="rec-lista" id="rec-gatilhos"></ul>
+            </div>
+
+            <div class="rec-bloco" id="rec-alertas-bloco" hidden>
+                <h3 class="rec-subtitulo">Alertas</h3>
+                <ul class="rec-lista" id="rec-alertas"></ul>
+            </div>
+
+            <div class="rec-grid">
+                <div class="rec-bloco" id="rec-observar-bloco" hidden>
+                    <h3 class="rec-subtitulo">O que observar</h3>
+                    <ul class="rec-lista" id="rec-observar"></ul>
+                </div>
+                <div class="rec-bloco" id="rec-mudar-bloco" hidden>
+                    <h3 class="rec-subtitulo">O que me faria mudar de ideia</h3>
+                    <ul class="rec-lista" id="rec-mudar"></ul>
+                </div>
+            </div>
+
+            <p class="rec-aviso">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                Isto e uma recomendacao de alocacao, nao uma garantia de retorno.
+                O TrendBot nao executa ordens em corretora nenhuma.
+            </p>
+        </section>
+
     </main>
 
     <section class="container historico-section" role="region" aria-label="Historico de previsoes">

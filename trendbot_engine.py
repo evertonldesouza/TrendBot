@@ -227,14 +227,30 @@ def fluxo_principal() -> None:
     except Exception as exc:  # noqa: BLE001
         logger.warning("Falha ao gerar gráficos: %s", exc)
 
+    meta = {"gerado_em": datetime.now().isoformat(timespec="seconds"),
+            "fonte": md.source, "perfil": profile.key}
+
     with open(os.path.join(DOCS, "relatorio_completo.json"), "w", encoding="utf-8") as f:
         json.dump({
-            "meta": {"gerado_em": datetime.now().isoformat(timespec="seconds"),
-                     "fonte": md.source, "perfil": profile.key},
+            "meta": meta,
             "modelo": card.as_dict(),
             "previsoes": {s: fc.as_dict() for s, fc in forecasts.items()},
             "recomendacao": advise.as_dict() if advise else None,
         }, f, ensure_ascii=False, indent=2, default=str)
+
+    # O relatório completo tem as grades de quantis e pesa ~94 KB. Publicar
+    # isso todo dia no git (e fazer o painel baixar) para mostrar meia dúzia
+    # de números não compensa: o painel lê este arquivo enxuto, com só a
+    # recomendação. O completo continua sendo gerado para quem depura.
+    if advise is not None:
+        with open(os.path.join(DOCS, "recomendacao.json"), "w", encoding="utf-8") as f:
+            json.dump({"meta": meta, "recomendacao": advise.as_dict()},
+                      f, ensure_ascii=False, indent=2, default=str)
+    elif os.path.exists(os.path.join(DOCS, "recomendacao.json")):
+        # sem recomendação nova, não deixa o painel servir uma velha como se
+        # fosse de hoje
+        os.remove(os.path.join(DOCS, "recomendacao.json"))
+        logger.warning("Sem recomendação neste ciclo: recomendacao.json antigo removido.")
 
     logger.info("Ciclo concluído.")
 

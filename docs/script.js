@@ -166,6 +166,126 @@ function renderModelCard(data) {
     bloco.hidden = false;
 }
 
+function pct(n) {
+    return (n * 100).toFixed(1).replace('.', ',') + '%';
+}
+
+function valorBR(n) {
+    const v = Number(n) || 0;
+    return (v < 0 ? '-' : '') + '$' +
+           Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2,
+                                                 maximumFractionDigits: 2 });
+}
+
+function dataHoraISO(iso) {
+    // o motor grava ISO ("2026-10-22T12:18:09"), não o "dd/mm/aaaa hh:mm" do
+    // restante do painel — parseDataBR não entende esse formato
+    const d = new Date(iso);
+    if (isNaN(d)) return String(iso);
+    const p = x => String(x).padStart(2, '0');
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() +
+           ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function renderRecomendacao(rec, data) {
+    const bloco = document.getElementById('rec');
+    if (!bloco) return;
+
+    const dados = rec && rec.recomendacao;
+    if (!dados) { bloco.hidden = true; return; }
+
+    const meta = rec.meta || {};
+
+    // a recomendação carrega a própria fonte, e os dois arquivos podem ter
+    // origens diferentes (o motor caiu no simulador num ciclo e não no outro)
+    const fontePainel = data && data.fonte ? data.fonte.id : null;
+    if (meta.fonte && meta.fonte !== 'synthetic') {
+        bloco.classList.remove('rec-fonte-divergente');
+    } else if (meta.fonte === 'synthetic') {
+        bloco.classList.add('rec-fonte-divergente');
+        const aviso = document.getElementById('rec-fonte-aviso');
+        if (aviso) aviso.hidden = false;
+    }
+    if (fontePainel && meta.fonte && meta.fonte !== fontePainel) {
+        console.warn('fonte divergente: recomendacao=' + meta.fonte +
+                     ' data.json=' + fontePainel);
+    }
+    const perfil = (meta.perfil || dados.profile || '').toString();
+    document.getElementById('rec-meta').textContent =
+        (perfil ? 'Perfil ' + perfil.charAt(0).toUpperCase() + perfil.slice(1) : '') +
+        (meta.gerado_em ? ' \u00b7 ' + dataHoraISO(meta.gerado_em) : '');
+
+    document.getElementById('rec-headline').textContent =
+        (dados.narrative && dados.narrative.headline) || '';
+
+    // alocação: alvo x atual, na ordem de peso alvo (maior primeiro)
+    const alvo = dados.target_weights || {};
+    const atual = dados.current_weights || {};
+    const simbolos = Object.keys(alvo).sort((a, b) => alvo[b] - alvo[a]);
+    document.getElementById('rec-alocacao').innerHTML = simbolos.map(simb => {
+        const a = alvo[simb] || 0;
+        const c = atual[simb] || 0;
+        const diff = a - c;
+        const tom = Math.abs(diff) < 0.005 ? '' : diff > 0 ? 'up' : 'down';
+        // data-label: no celular a tabela vira bloco e o rótulo sai daqui
+        return '<tr>' +
+               '<td data-label="Ativo">' + escapeHtml(simb) + '</td>' +
+               '<td data-label="Atual">' + pct(c) + '</td>' +
+               '<td data-label="Alvo">' + pct(a) + '</td>' +
+               '<td data-label="Diferenca" class="' + tom + '">' +
+               (diff > 0 ? '+' : '') + pct(diff) + '</td></tr>';
+    }).join('');
+
+    // ordens sugeridas, por prioridade
+    const ordens = (dados.orders || []).slice().sort((a, b) =>
+        (a.priority || 99) - (b.priority || 99));
+    document.getElementById('rec-ordens').innerHTML = ordens.map(o => {
+        const valor = Number(o.amount) || 0;
+        const tom = valor > 0 ? 'up' : valor < 0 ? 'down' : '';
+        return '<tr>' +
+               '<td data-label="Acao">' + escapeHtml(o.symbol + ' \u2014 ' + (o.action || '')) + '</td>' +
+               '<td data-label="Valor" class="' + tom + '">' + valorBR(valor) + '</td>' +
+               '<td class="rec-motivo">' + escapeHtml(o.reason || '') + '</td></tr>';
+    }).join('');
+
+    const hedge = dados.hedge;
+    if (hedge) {
+        document.getElementById('rec-protecao-bloco').hidden = false;
+        document.getElementById('rec-protecao').textContent =
+            'Caixa recomendado: ' + pct(hedge.cash_weight || 0) +
+            (hedge.de_risk_level && hedge.de_risk_level !== 'nenhum'
+                ? ' (redu\u00e7\u00e3o de risco: ' + escapeHtml(hedge.de_risk_level) + ')'
+                : '') + '. ' + (hedge.rationale || '');
+        document.getElementById('rec-gatilhos').innerHTML =
+            (hedge.triggers || []).map(t => '<li>' + escapeHtml(t) + '</li>').join('');
+    }
+
+    const alertas = dados.alerts || [];
+    if (alertas.length) {
+        document.getElementById('rec-alertas-bloco').hidden = false;
+        document.getElementById('rec-alertas').innerHTML = alertas.map(a =>
+            '<li class="rec-alerta-' + escapeHtml(a.level || 'info') + '"><strong>' +
+            escapeHtml(a.title || '') + '</strong> ' + escapeHtml(a.message || '') + '</li>'
+        ).join('');
+    }
+
+    const narrativa = dados.narrative || {};
+    const observar = narrativa.o_que_observar || [];
+    const mudar = narrativa.o_que_me_faria_mudar_de_ideia || [];
+    if (observar.length) {
+        document.getElementById('rec-observar-bloco').hidden = false;
+        document.getElementById('rec-observar').innerHTML =
+            observar.map(t => '<li>' + escapeHtml(t) + '</li>').join('');
+    }
+    if (mudar.length) {
+        document.getElementById('rec-mudar-bloco').hidden = false;
+        document.getElementById('rec-mudar').innerHTML =
+            mudar.map(t => '<li>' + escapeHtml(t) + '</li>').join('');
+    }
+
+    bloco.hidden = false;
+}
+
 function renderCards(data, historico) {
     const grid = document.getElementById('dashboard-grid');
     grid.innerHTML = '';
@@ -845,6 +965,15 @@ async function init() {
         renderFiltros(historico);
         ligarControles();
         renderHistoricoTabela();
+
+        // separado de propósito: antes da primeira execução que gere o arquivo,
+        // o 404 aqui não pode derrubar o resto do painel
+        try {
+            const res = await fetch('./recomendacao.json');
+            if (res.ok) renderRecomendacao(await res.json(), data);
+        } catch (e) {
+            console.warn('recomendacao.json indisponível:', e.message);
+        }
 
     } catch (err) {
         console.error('Erro ao carregar dados:', err);
