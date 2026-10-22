@@ -1,84 +1,84 @@
 {
   "meta": {
-    "gerado_em": "2026-10-22T12:35:16",
+    "gerado_em": "2026-10-22T17:53:34",
     "fonte": "coingecko",
     "perfil": "moderado"
   },
   "recomendacao": {
     "profile": "moderado",
-    "generated_at": "2026-10-22T12:35:15+00:00",
-    "equity_exposure": 0.6879,
+    "generated_at": "2026-10-22T17:53:34+00:00",
+    "equity_exposure": 0.6856,
     "target_weights": {
-      "ADA": 0.1081,
-      "BTC": 0.2408,
-      "ETH": 0.1735,
-      "SOL": 0.1655,
-      "USD": 0.3121
+      "ADA": 0.1076,
+      "BTC": 0.24,
+      "ETH": 0.1729,
+      "SOL": 0.1651,
+      "USD": 0.3144
     },
     "current_weights": {
       "USD": 1.0
     },
     "benchmark_weights": {
-      "ADA": 0.1929,
+      "ADA": 0.1926,
       "BTC": 0.3347,
       "ETH": 0.2416,
-      "SOL": 0.2309
+      "SOL": 0.2311
     },
     "orders": [
       {
         "symbol": "USD",
         "action": "LIBERAR CAIXA",
-        "target_weight": 0.3121,
+        "target_weight": 0.3144,
         "current_weight": 1.0,
-        "delta_weight": -0.6879,
-        "amount": -6879.0,
+        "delta_weight": -0.6856,
+        "amount": -6856.0,
         "reason": "Caixa acima do necessário para o risco atual — parte dele pode ser colocada para trabalhar.",
         "priority": 2
       },
       {
         "symbol": "BTC",
         "action": "COMPRAR",
-        "target_weight": 0.2408,
+        "target_weight": 0.24,
         "current_weight": 0.0,
-        "delta_weight": 0.2408,
-        "amount": 2408.0,
+        "delta_weight": 0.24,
+        "amount": 2400.0,
         "reason": "Abaixo do alvo (0% → 24%).",
         "priority": 1
       },
       {
         "symbol": "ETH",
         "action": "COMPRAR",
-        "target_weight": 0.1735,
+        "target_weight": 0.1729,
         "current_weight": 0.0,
-        "delta_weight": 0.1735,
-        "amount": 1735.0,
+        "delta_weight": 0.1729,
+        "amount": 1729.0,
         "reason": "Abaixo do alvo (0% → 17%).",
         "priority": 1
       },
       {
         "symbol": "SOL",
         "action": "COMPRAR",
-        "target_weight": 0.1655,
+        "target_weight": 0.1651,
         "current_weight": 0.0,
-        "delta_weight": 0.1655,
-        "amount": 1655.0,
+        "delta_weight": 0.1651,
+        "amount": 1651.0,
         "reason": "Abaixo do alvo (0% → 17%).",
         "priority": 1
       },
       {
         "symbol": "ADA",
         "action": "COMPRAR",
-        "target_weight": 0.1081,
+        "target_weight": 0.1076,
         "current_weight": 0.0,
-        "delta_weight": 0.1081,
-        "amount": 1081.0,
+        "delta_weight": 0.1076,
+        "amount": 1076.0,
         "reason": "Abaixo do alvo (0% → 11%).",
         "priority": 2
       }
     ],
     "hedge": {
-      "cash_weight": 0.3121,
-      "cash_amount": 3121.37,
+      "cash_weight": 0.3144,
+      "cash_amount": 3143.75,
       "rationale": "Caixa reforçado (31%): o mercado está mais volátil que o seu alvo, então o colchão absorve parte do impacto e serve de munição.",
       "triggers": [
         "Volatilidade do mercado acima de 55% anualizados.",
@@ -114,58 +114,58 @@
       "best_day": 0.0
     },
     "risk_target": {
-      "volatility": 0.3569197317483157,
-      "downside_vol": 0.3706798423031063,
-      "var95": 0.030134037092186643,
-      "var99": 0.05132473796610319,
-      "cvar95": 0.042414421763105135,
-      "var95_param": 0.030731943633835017,
-      "max_drawdown": -0.4712092893421691,
-      "current_drawdown": -0.2998341067676096,
-      "sharpe": -0.7010047340012988,
-      "sortino": -0.6749825403493388,
-      "calmar": -0.4354804250580787,
-      "beta": 0.8121270807319039,
-      "concentration_hhi": 0.12716275,
-      "top_weight": 0.2408,
-      "diversification_ratio": 1.074732095674931,
+      "volatility": 0.35623978469965484,
+      "downside_vol": 0.36996307512219917,
+      "var95": 0.03002774447567975,
+      "var99": 0.051155043481986885,
+      "cvar95": 0.04227196660031599,
+      "var95_param": 0.030673397993135686,
+      "max_drawdown": -0.46997483498673165,
+      "current_drawdown": -0.30313551409363515,
+      "sharpe": -0.7141375794030147,
+      "sortino": -0.6876475914479645,
+      "calmar": -0.44556474505358257,
+      "beta": 0.8095625513438881,
+      "concentration_hhi": 0.12633018000000001,
+      "top_weight": 0.24,
+      "diversification_ratio": 1.074551062167909,
       "risk_contributions": {
-        "ADA": 0.20314557760672408,
-        "BTC": 0.2661586901126079,
-        "ETH": 0.2658076338413449,
-        "SOL": 0.26488809843932304
+        "ADA": 0.20318705594234743,
+        "BTC": 0.2661345877213331,
+        "ETH": 0.2657479802182362,
+        "SOL": 0.2649303761180833
       },
-      "annual_return": -0.205202421614043,
-      "worst_day": -0.10078365792587571,
-      "best_day": 0.08132309459580603
+      "annual_return": -0.20940421753246263,
+      "worst_day": -0.10044604447119584,
+      "best_day": 0.08105012724084401
     },
     "stress": [
       {
         "cenario": "inverno_cripto",
         "label": "Inverno cripto (-60% no BTC, correlações a 0,95)",
-        "impacto_base": -0.281794465339849,
-        "impacto_estresse_95": -0.6074236930559207,
+        "impacto_base": -0.2807309104536315,
+        "impacto_estresse_95": -0.6056850546417961,
         "correlacao_alvo": 0.95
       },
       {
         "cenario": "correcao_forte",
         "label": "Correção forte (-35% no BTC)",
-        "impacto_base": -0.1443163547815786,
-        "impacto_estresse_95": -0.3975835318940789,
+        "impacto_base": -0.14376303109795174,
+        "impacto_estresse_95": -0.39650514324430186,
         "correlacao_alvo": 0.9
       },
       {
         "cenario": "choque_liquidez",
         "label": "Choque de liquidez (-22% em um dia, tudo correlacionado)",
-        "impacto_base": -0.12510813729127798,
-        "impacto_estresse_95": -0.5230994156109212,
+        "impacto_base": -0.12464533383299822,
+        "impacto_estresse_95": -0.5218115100629771,
         "correlacao_alvo": 0.98
       },
       {
         "cenario": "alta_forte",
         "label": "Alta forte (+45% no BTC)",
-        "impacto_base": 0.18554959900488677,
-        "impacto_estresse_95": -0.013446040154934915,
+        "impacto_base": 0.18483818284022366,
+        "impacto_estresse_95": -0.013744905274765773,
         "correlacao_alvo": 0.8
       }
     ],
@@ -183,12 +183,12 @@
       {
         "level": "info",
         "title": "ADA: queda profunda",
-        "message": "ADA está 68% abaixo do topo. Aumentar posição aqui é uma aposta de recuperação, não um investimento defensivo."
+        "message": "ADA está 69% abaixo do topo. Aumentar posição aqui é uma aposta de recuperação, não um investimento defensivo."
       },
       {
         "level": "atencao",
         "title": "Rebalanceamento grande à vista",
-        "message": "O ajuste total é de 138% do patrimônio. Se houver custo de corretagem ou imposto relevante, execute em 2 a 3 etapas."
+        "message": "O ajuste total é de 137% do patrimônio. Se houver custo de corretagem ou imposto relevante, execute em 2 a 3 etapas."
       }
     ],
     "narrative": {
@@ -221,14 +221,14 @@
     "diagnostics": {
       "fonte_dados": "coingecko",
       "ativo_referencia": "BTC",
-      "volatilidade_referencia": 0.4166,
-      "pressao_volatilidade": 0.951,
-      "pressao_drawdown": 0.715,
+      "volatilidade_referencia": 0.4171,
+      "pressao_volatilidade": 0.952,
+      "pressao_drawdown": 0.726,
       "corte_volatilidade": 1.0,
-      "conviccao_mercado": -0.067,
+      "conviccao_mercado": -0.068,
       "leitura_mercado": "neutro",
       "mistura_min_variancia": 0.1,
-      "habilidade_modelo": -0.1033,
+      "habilidade_modelo": -0.1015,
       "cobertura_intervalos": 0.95,
       "dias_historico": 365,
       "ultima_atualizacao": "2026-10-22",
