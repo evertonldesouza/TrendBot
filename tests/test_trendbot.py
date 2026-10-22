@@ -1313,3 +1313,23 @@ def test_grafico_de_previsao_gera_o_arquivo(tmp_path):
 
     assert saida.exists(), "plot_forecast_fan não gerou o PNG"
     assert saida.stat().st_size > 0
+
+
+def test_perfil_desconhecido_falha_em_vez_de_cair_no_padrao():
+    """Quem digita "conservdor" recebia a recomendação de outro perfil.
+
+    Perfil de risco é a configuração que não pode ser trocada por acaso.
+    """
+    from trendbot.config import get_profile
+
+    with pytest.raises(ValueError, match="(?i)desconhecido"):
+        get_profile("conservdor")
+
+
+def test_perfil_sem_chave_usa_o_padrao():
+    """Nenhuma chave é ausência de escolha, não um nome inválido."""
+    from trendbot.config import DEFAULT_PROFILE, get_profile
+
+    assert get_profile(None).key == DEFAULT_PROFILE
+    assert get_profile("").key == DEFAULT_PROFILE
+    assert get_profile("  ").key == DEFAULT_PROFILE

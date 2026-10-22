@@ -19,3 +19,6 @@ pydantic>=2.5,<3
 
 # --- testes -------------------------------------------------------------
 pytest>=8,<9
+# httpx é só para os testes da API (fastapi.testclient); a app em si não usa
+httpx>=0.27,<1
+coverage>=7,<8
