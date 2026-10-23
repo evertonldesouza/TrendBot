@@ -2,18 +2,23 @@
 # O modelo é ridge em numpy puro (trendbot/forecast.py) e os quantis saem de
 # np.quantile: scipy e scikit-learn não são importados em lugar nenhum, e
 # ficaram listados só por inércia da época em que o modelo era Prophet.
-numpy>=1.26
-pandas>=2.2
-requests>=2.31           # import local em trendbot/data.py: o núcleo roda offline
-python-dotenv>=1.0       # lê o .env local (opcional: o import é protegido)
+# Teto = próxima major. Sem teto, uma quebra de compatibilidade numa major
+# nova derruba o job diário sem nenhuma mudança no código daqui.
+numpy>=1.26,<3
+pandas>=2.2,<3
+requests>=2.31,<3        # import local em trendbot/data.py: o núcleo roda offline
+python-dotenv>=1.0,<2    # lê o .env local (opcional: o import é protegido)
 
 # --- visualização -------------------------------------------------------
-matplotlib>=3.8
+matplotlib>=3.8,<4
 
 # --- API e painel web ---------------------------------------------------
-fastapi>=0.110
-uvicorn[standard]>=0.27
-pydantic>=2.5
+fastapi>=0.110,<1
+uvicorn[standard]>=0.27,<1
+pydantic>=2.5,<3
 
 # --- testes -------------------------------------------------------------
-pytest>=8.0
+pytest>=8,<9
+# httpx é só para os testes da API (fastapi.testclient); a app em si não usa
+httpx>=0.27,<1
+coverage>=7,<8

@@ -27,3 +27,7 @@ docs/relatorio_completo.json
 .vscode/
 .idea/
 .DS_Store
+
+# cobertura de testes
+.coverage
+htmlcov/

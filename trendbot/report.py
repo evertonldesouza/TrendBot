@@ -85,6 +85,12 @@ def plot_forecast_fan(prices: pd.DataFrame, forecast: AssetForecast,
     last_date = series.index[-1]
     last_price = float(series.iloc[-1])
     future_index = pd.date_range(last_date, periods=horizon + 1, freq="D")[1:]
+    # DatetimeIndex, e não np.concatenate([[last_date], future_index]): este
+    # devolve um array object, e o matplotlib 3.11 não converte Timestamps
+    # soltos num array object — a data virava ordinal -1017496 (ano -816) e o
+    # desenho morria com ValueError. Passou despercebido porque o chamador
+    # engole a exceção com um warning.
+    eixo_futuro = pd.DatetimeIndex([last_date]).append(future_index)
 
     ax1.plot(series.index, series.to_numpy(), color=BLUE, lw=1.6, label="Preço (12 meses)")
     for w, alpha in ((50, 0.35), (200, 0.25)):
@@ -101,10 +107,10 @@ def plot_forecast_fan(prices: pd.DataFrame, forecast: AssetForecast,
             hi = last_price * (1 + qs.get(f"p{int(hi_q * 100)}", f.upper))
             lo_path = np.linspace(last_price, lo, horizon + 1)
             hi_path = np.linspace(last_price, hi, horizon + 1)
-            ax1.fill_between(np.concatenate([[last_date], future_index]), lo_path, hi_path,
+            ax1.fill_between(eixo_futuro, lo_path, hi_path,
                              color=PURPLE, alpha=alpha, lw=0)
         med_path = np.linspace(last_price, last_price * (1 + f.median_return), horizon + 1)
-        ax1.plot(np.concatenate([[last_date], future_index]), med_path,
+        ax1.plot(eixo_futuro, med_path,
                  color=PURPLE, lw=2, ls="--", label=f"Mediana ({horizon}d)")
         ax1.scatter([future_index[-1]], [med_path[-1]], color=PURPLE, s=60, zorder=5)
         ax1.annotate(f"{_fmt_price(med_path[-1])}\n{f.median_return:+.1%}",

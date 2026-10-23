@@ -1,0 +1,28 @@
+# O que NÃO entra na imagem — o repositório carrega bem mais do que a API precisa.
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# dados publicados e artefatos do job diário: ~1 MB que a API não lê
+docs
+
+# resultado de execução local
+out
+.cache
+data
+*.png
+
+# nunca subir segredo por acidente
+.env
+.env.*
+!.env.example
+
+tests
+readme.md

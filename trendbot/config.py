@@ -106,8 +106,23 @@ DEFAULT_PROFILE = "moderado"
 
 
 def get_profile(key: str | None = None) -> RiskProfile:
-    key = (key or os.getenv("PERFIL_RISCO") or DEFAULT_PROFILE).strip().lower()
-    return PROFILES.get(key, PROFILES[DEFAULT_PROFILE])
+    """Perfil pelo nome. Sem chave (ou vazia), o padrão.
+
+    Uma chave desconhecida levanta ValueError em vez de cair no padrão em
+    silêncio: quem digita "conservdor" receberia a recomendação de outro
+    perfil sem saber, e perfil de risco é exatamente a configuração que não
+    pode ser trocada por acaso. A API converte isso em 400.
+    """
+    # o strip vem antes de testar vazio: "  " é truthy, e só depois de limpar
+    # vira nome vazio — o que significa "não escolheu", não "nome inválido"
+    bruto = (key or os.getenv("PERFIL_RISCO") or "").strip() or DEFAULT_PROFILE
+    chave = bruto.lower()
+    if chave in PROFILES:
+        return PROFILES[chave]
+    raise ValueError(
+        f"Perfil de risco desconhecido: {bruto!r}. "
+        f"Opções: {', '.join(sorted(PROFILES))}."
+    )
 
 
 @dataclass(slots=True)

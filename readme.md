@@ -493,6 +493,37 @@ Gera em `out/`: `relatorio.json`, `alocacao.png`, `risco.png`, `backtest.png` e
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+### Deploy (Docker)
+
+A API tem um `Dockerfile` na raiz. É o caminho mais curto para pôr o serviço no
+ar em qualquer lugar que rode contêiner (Render, Railway, Fly.io, Cloud Run):
+
+```bash
+docker build -t trendbot .
+docker run --rm -p 8000:8000 -e FONTE_DADOS=auto trendbot
+curl localhost:8000/api/health
+```
+
+Algumas decisões do `Dockerfile`:
+
+- **Sem segredo nenhum na imagem.** O único opcional é `COINGECKO_API_KEY`, que
+  entra por variável de ambiente em tempo de execução — nunca no build.
+- **`MPLBACKEND=Agg`.** Os gráficos rodam sem tela; numa imagem enxuta, sem
+  isso o matplotlib procura um display que não existe.
+- **`PORT` é lido pela app**, então plataformas que injetam a porta funcionam
+  sem mudança de código.
+- **Healthcheck em `/api/health`**, que responde sem tocar em rede — barato o
+  suficiente para rodar a cada minuto.
+- **Usuário não-root** (uid 1000), criado depois do `COPY` para não brigar com
+  permissão.
+
+O `.dockerignore` exclui `docs/`, `tests/` e artefatos locais: o repositório
+carrega bem mais do que a API precisa, e `docs/` é ~1 MB de dados publicados
+que o painel estático serve por conta própria.
+
+**Nenhum deploy executa ordens.** O sistema devolve uma recomendação de
+alocação; a API não tem — e não deve ter — credencial de corretora.
+
 ### Variáveis de ambiente
 
 ```env
@@ -520,24 +551,48 @@ DATA_DIR=data
 
 ```bash
 pytest tests/ -v
+
+# cobertura
+coverage run --source=trendbot,trendbot_engine,trendbot_coleta,app -m pytest tests/
+coverage report
 ```
 
-39 testes, rodando 100% offline, cobrindo:
+**110 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
+**88%** do núcleo.
 
-- **dados** — determinismo da simulação, estatísticas plausíveis, fallback sem rede;
-- **indicadores** — RSI, médias, drawdown, volatilidade;
-- **previsão** — **ausência de informação do futuro nas features** (alterar o
-  último preço não muda as features anteriores), coerência dos quantis,
-  intervalo de 30d maior que o de 1d, cobertura próxima do alvo, detecção de
-  sinal vs. ruído;
-- **risco** — simetria da matriz, efeito do shrinkage, **caixa não
-  renormalizado**, contribuições somando 100%, paridade de risco, estresse com
-  colchão;
-- **alocação** — exposição monotônica na convicção, respeito ao teto de
-  volatilidade e de concentração, banda de rebalanceamento, ordens somando
-  zero, aporte indo para o defasado;
-- **integração** — os 4 perfis batem o alvo de volatilidade, payload
-  serializável, CLI gerando relatório.
+| Módulo | Cobertura | O que segura no lugar |
+|---|---|---|
+| `backtest.py` | 95% | métricas do comparativo |
+| `assets.py` | 93% | catálogo e nomes canônicos |
+| `forecast.py` | 92% | quantis, calibração, peso do modelo |
+| `risk.py` | 92% | risco, estresse, contribuições |
+| `app/main.py` | 91% | contrato HTTP da API |
+| `cli.py` | 91% | linha de comando |
+| `advisor.py` | 90% | montagem da recomendação |
+| `indicators.py` | 90% | indicadores técnicos |
+| `config.py` | 86% | perfis e settings |
+| `trendbot_coleta.py` | 85% | shim de compatibilidade da v1 |
+| `report.py` | 82% | gráficos e payload |
+| `data.py` | 73% | provedores, cache e fallback |
+
+Os testes que mais importam são os que travam uma decisão de projeto, não os
+que exercitam código:
+
+- **ausência de informação do futuro nas features** — alterar o último preço não
+  pode mudar as features anteriores;
+- **caixa não renormalizado** — o colchão tem de continuar sendo caixa, e não
+  virar "exposição implícita";
+- **previsão simulada não entra no histórico de acertos**;
+- **a pendência é conferida com o preço de D+1**, não com o último disponível;
+- **o model card aparece no painel** — já foi calculado e descartado uma vez;
+- **as tabelas de nomes do Python e do dashboard concordam**;
+- **o `.env` é lido de verdade**, e não atropela quem já definiu a variável;
+- **perfil inexistente falha**, em vez de cair no padrão em silêncio.
+
+Todo teste novo passa por **verificação por mutação**: reintroduzo o defeito e
+confirmo que o teste quebra. Vários não quebravam na primeira versão — em geral
+por procurarem o texto da *definição* de uma função (que contém o da chamada) ou
+por construírem dados em que a grandeza medida não variava.
 
 ---
 
@@ -613,9 +668,19 @@ Os nomes de moeda são **canonizados** no painel: o histórico antigo guarda
 ativo duas vezes e a "precisão por moeda" dos cards ficava zerada — o card do
 BTC exibia "Aguardando dados" mesmo com 34 previsões já resolvidas.
 
-O `historico.json` é mantido com no máximo 400 entradas
-(`salvar_historico(historico[-400:])`), então a paginação no cliente continua
-leve indefinidamente.
+#### De quanto tempo é esse histórico
+
+O `historico.json` guarda no máximo 400 entradas. Com 4 ativos por dia, isso dá
+cerca de **100 dias de histórico de acertos** — suficiente para a calibração dos
+intervalos, que quer ~200 pontos resolvidos. Cada entrada pesa ~250 bytes, então
+aumentar muito aqui vira peso diário no git; quando o teto corta, o motor avisa
+quantas previsões saíram.
+
+**Isso não é a janela do backtest.** O backtest roda sobre dados de mercado e
+cobre 3,5 anos; o histórico de acertos cobre os últimos ~100 dias de previsões
+publicadas. São coisas diferentes, e um não valida o outro: o backtest diz como a
+estratégia teria se saído, o histórico diz como os intervalos estão se
+comportando agora.
 
 ---
 
