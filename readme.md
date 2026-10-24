@@ -561,7 +561,7 @@ coverage run --source=trendbot,trendbot_engine,trendbot_coleta,app -m pytest tes
 coverage report
 ```
 
-**124 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
+**156 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
 **88%** do núcleo.
 
 | Módulo | Cobertura | O que segura no lugar |
@@ -577,7 +577,7 @@ coverage report
 | `config.py` | 86% | perfis e settings |
 | `trendbot_coleta.py` | 85% | shim de compatibilidade da v1 |
 | `report.py` | 82% | gráficos e payload |
-| `data.py` | 73% | provedores, cache e fallback |
+| `data.py` | 98% | provedores, cache e fallback |
 
 ### O painel também é testado
 
