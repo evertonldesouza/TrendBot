@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
-from .assets import Asset, resolve_assets
+from .assets import CASH, Asset, moeda_canonica, resolve_assets
+
+logger = logging.getLogger(__name__)
 
 
 def _carregar_dotenv() -> None:
@@ -103,6 +106,55 @@ PROFILES: dict[str, RiskProfile] = {
 }
 
 DEFAULT_PROFILE = "moderado"
+
+
+def parse_carteira(texto: str | None) -> tuple[dict[str, float], float]:
+    """Converte "BTC:12000,ETH:5000,USD:3000" em (posições, caixa).
+
+    O caixa vem separado porque ``PortfolioState`` trata os dois de forma
+    diferente: caixa não é exposição, e deixá-lo dentro de ``holdings`` faria
+    o colchão virar "posição em dólar".
+
+    Aceita nome ou símbolo — ``bitcoin:12000`` e ``BTC:12000`` dão no mesmo —
+    para que quem configurou na v1 não quebre. Trechos malformados (sem dois pontos,
+    valor não numérico) são ignorados com aviso: derrubar o relatório por causa
+    de uma vírgula errada é desproporcional.
+
+    Símbolo repetido soma, em vez de o último ganhar: é o que se espera de
+    "BTC:1000,BTC:2000".
+    """
+    posicoes: dict[str, float] = {}
+    caixa = 0.0
+    if not texto:
+        return posicoes, caixa
+
+    for parte in texto.split(","):
+        parte = parte.strip()
+        if not parte:
+            continue
+        if ":" not in parte:
+            logger.warning("Trecho de carteira ignorado (falta ':'): %r", parte)
+            continue
+
+        simbolo, valor_txt = parte.split(":", 1)
+        try:
+            valor = float(valor_txt.strip())
+        except ValueError:
+            logger.warning("Valor de carteira inválido ignorado: %r", parte)
+            continue
+        if valor <= 0:
+            continue
+
+        canonico = moeda_canonica(simbolo.strip()).upper() if simbolo.strip() else ""
+        if not canonico:
+            logger.warning("Ativo de carteira ignorado (sem símbolo): %r", parte)
+            continue
+        if canonico == CASH:
+            caixa += valor
+        else:
+            posicoes[canonico] = posicoes.get(canonico, 0.0) + valor
+
+    return posicoes, caixa
 
 
 def get_profile(key: str | None = None) -> RiskProfile:

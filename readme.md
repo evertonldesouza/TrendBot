@@ -536,6 +536,10 @@ FONTE_DADOS=auto
 PERFIL_RISCO=moderado
 CAPITAL_INICIAL=25000
 APORTE_MENSAL=1000
+
+# O que você tem hoje: SÍMBOLO:valor_em_USD, separados por vírgula.
+# Aceita nome ("bitcoin") ou símbolo ("BTC").
+CARTEIRA_ATUAL=BTC:12000,ETH:5000,USD:3000
 BENCHMARK=BTC
 TAXA_LIVRE_RISCO=0.045
 
@@ -557,7 +561,7 @@ coverage run --source=trendbot,trendbot_engine,trendbot_coleta,app -m pytest tes
 coverage report
 ```
 
-**110 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
+**156 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
 **88%** do núcleo.
 
 | Módulo | Cobertura | O que segura no lugar |
@@ -573,7 +577,35 @@ coverage report
 | `config.py` | 86% | perfis e settings |
 | `trendbot_coleta.py` | 85% | shim de compatibilidade da v1 |
 | `report.py` | 82% | gráficos e payload |
-| `data.py` | 73% | provedores, cache e fallback |
+| `data.py` | 98% | provedores, cache e fallback |
+
+### O painel também é testado
+
+O dashboard é servido direto do `docs/`, sem build. Durante muito tempo isso
+significou que **nada** o validava — e ele já entregou função definida e nunca
+chamada, e link para imagem que deixou de existir. Os dois passam batido porque
+o navegador não reclama de função parada nem confere `href`.
+
+```bash
+npm ci
+node tests/painel/check.mjs
+```
+
+Sobe o DOM com os dados publicados e confere: sintaxe, **função definida e
+nunca chamada**, um card por ativo, o gráfico desenhado, nenhum link para
+arquivo não publicado, e o veredito do modelo preenchido — porque um painel que
+esconde as próprias limitações está justamente burlando a proposta do projeto.
+
+### A imagem Docker
+
+```bash
+docker build -t trendbot .
+docker run --rm -p 8000:8000 trendbot
+```
+
+O CI constrói a imagem e espera o healthcheck dela ficar `healthy` em todo PR.
+Antes, um Dockerfile quebrado — ou um `requirements.txt` sem o uvicorn, que é o
+`CMD` — só aparecia quando alguém tentava subir o contêiner à mão.
 
 Os testes que mais importam são os que travam uma decisão de projeto, não os
 que exercitam código:
@@ -607,6 +639,26 @@ O workflow `.github/workflows/daily_report.yml` roda diariamente:
    e os gráficos. O dashboard estático do GitHub Pages em `docs/` continua
    funcionando sem alteração, e o histórico de acertos segue sendo conferido
    dia após dia (critério: preço realizado dentro do intervalo de 90%).
+
+#### A recomendação precisa conhecer a sua carteira
+
+Sem `CARTEIRA_ATUAL`, o motor monta a carteira como **100% caixa** — e a
+recomendação publicada todo dia é sempre a mesma, "aplique 69% a partir do
+caixa", independentemente do que você tem. Ela não está errada, mas é uma
+resposta para uma pergunta que ninguém fez.
+
+Com `CARTEIRA_ATUAL`, o relatório passa a ser um **rebalanceamento**: compara o
+que você tem com o alvo e diz o que mover, e o colchão de caixa é calculado
+sobre o patrimônio real.
+
+Aceita nome ou símbolo (`bitcoin:12000` e `BTC:12000` dão no mesmo), soma
+símbolo repetido, e ignora trecho malformado com um aviso — derrubar o
+relatório do dia por causa de uma vírgula errada seria desproporcional. Se a
+soma das posições passar do `CAPITAL_INICIAL`, vale o que você tem: o
+patrimônio é o que está na carteira, não o que foi declarado.
+
+Esse parsing existia em três cópias (motor, CLI e API) e agora é um só, em
+`trendbot/config.py::parse_carteira`.
 
 **Nenhum segredo é obrigatório.** Opcionais: variáveis `MOEDAS_ALVO`,
 `DIAS_HISTORICO`, `PERFIL_RISCO`, `CAPITAL_INICIAL`, `TENTATIVAS_REDE`, e o

@@ -6,6 +6,7 @@ sintético determinístico. ``pytest tests/ -v``
 
 from __future__ import annotations
 
+import json as _json
 import pathlib
 import re
 
@@ -984,10 +985,17 @@ def test_deduplicacao_usa_o_nome_canonico():
 
 
 def test_painel_nao_cita_mais_o_modelo_antigo():
-    """O rodapé entregava 'Prophet' muito depois de o modelo ter mudado."""
+    """O rodapé entregava 'Prophet' muito depois de o modelo ter mudado.
+
+    O teste lia só o index.html e passava, enquanto o script.js — que é quem
+    monta o card na tela — continuava escrevendo 'Prophet + RSI/SMA' para toda
+    visita. Painel servido direto do docs/, então era mentira em produção.
+    """
     html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
 
     assert "Prophet" not in html
+    assert "Prophet" not in js
 
 
 def test_painel_exibe_a_avaliacao_do_modelo():
@@ -1289,6 +1297,76 @@ def test_pendencia_sem_o_preco_do_dia_seguinte_fica_pendente():
     assert historico[0]["acerto"] is None
 
 
+def test_pendencia_com_nome_da_v1_e_resolvida():
+    """O histórico da v1 guardava o nome ("CARDANO"), o preço vem por símbolo.
+
+    A busca era `if simbolo not in mapa: continue` contra um mapa montado com
+    as colunas canônicas, então "CARDANO" nunca casava com "ADA" e a entrada
+    ficava pendente para sempre. Era o caso de 13/10 e 20/10/2026, travados
+    havia dias — o registro de acerto do modelo ia ficando furado sem ninguém
+    notar, porque as pendências antigas simplesmente desapareciam da conta.
+    """
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend3", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"ADA": [1.0, 1.1]},
+        index=pd.to_datetime(["2026-10-13", "2026-10-14"]),
+    )
+    historico = [{
+        "data": "13/10/2026", "moeda": "CARDANO", "previsao": 1.0,
+        "confianca_min": 0.9, "confianca_max": 1.2,
+        "preco_real": None, "erro": None, "acerto": None,
+    }]
+
+    assert motor._resolver_pendencias(historico, precos) == 1
+    assert historico[0]["preco_real"] == 1.1
+    assert historico[0]["acerto"] == "✅"
+
+
+def test_pendencia_de_ativo_fora_da_serie_continua_pendente():
+    """Canonizar não é casar qualquer coisa: ativo ausente segue pendente."""
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend4", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"BTC": [100.0, 200.0]},
+        index=pd.to_datetime(["2026-10-20", "2026-10-21"]),
+    )
+    historico = [{
+        "data": "20/10/2026", "moeda": "DOGE", "previsao": 100.0,
+        "confianca_min": 90.0, "confianca_max": 110.0,
+        "preco_real": None, "erro": None, "acerto": None,
+    }]
+
+    assert motor._resolver_pendencias(historico, precos) == 0
+    assert historico[0]["preco_real"] is None
+    assert historico[0]["acerto"] is None
+
+
+def test_indice_de_precos_canoniza_o_nome_da_coluna():
+    """O índice é por símbolo, venha a coluna como vier."""
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend5", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"cardano": [1.0]}, index=pd.to_datetime(["2026-10-14"])
+    )
+    assert set(motor._mapa_de_precos_por_dia(precos)) == {"ADA"}
+
+
 def test_grafico_de_previsao_gera_o_arquivo(tmp_path):
     """O leque de projeção desenhava uma data inválida e morria.
 
@@ -1342,3 +1420,109 @@ def test_painel_revela_quando_os_intervalos_foram_calibrados():
 
     assert "data.calibracao" in js, "o painel ignora a calibração publicada"
     assert 'id="model-card"' in html
+
+
+def _rodar_motor_em_tmp(tmp_path, monkeypatch):
+    """Roda o ciclo num diretório descartável e devolve o recomendacao.json."""
+    import importlib.util
+    import json as _json
+    from unittest import mock
+
+    (tmp_path / "docs").mkdir(exist_ok=True)
+    origem = pathlib.Path(__file__).resolve().parent.parent / "trendbot_engine.py"
+    monkeypatch.chdir(tmp_path)
+    espec = importlib.util.spec_from_file_location("motor_cart", str(origem))
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    with mock.patch.object(motor, "carregar_historico", return_value=[]), \
+         mock.patch.object(motor, "salvar_historico"):
+        motor.fluxo_principal()
+
+    return tmp_path / "docs"
+
+
+def test_motor_recomenda_a_partir_da_carteira_configurada(tmp_path, monkeypatch):
+    """Sem carteira configurada, toda recomendação era "aplique do zero".
+
+    O motor montava a carteira como 100% caixa, então o publicado todo dia
+    dizia como aplicar um dinheiro parado — nunca como rebalancear o que a
+    pessoa já tem.
+    """
+    monkeypatch.setenv("CARTEIRA_ATUAL", "BTC:12000,ETH:5000,USD:3000")
+
+    rec = _json.loads(
+        (_rodar_motor_em_tmp(tmp_path, monkeypatch) / "recomendacao.json").read_text(encoding="utf-8")
+    )["recomendacao"]
+
+    atual = rec["current_weights"]
+    assert atual.get("BTC", 0) > 0, f"a posição em BTC não apareceu: {atual}"
+    assert atual.get("ETH", 0) > 0
+    # 12000 + 5000 + 3000 = 20000; BTC é 60% e ETH 25%
+    assert abs(atual["BTC"] - 0.6) < 0.01, atual
+    assert abs(atual["ETH"] - 0.25) < 0.01, atual
+
+
+def test_motor_sem_carteira_configurada_mantem_tudo_em_caixa(tmp_path, monkeypatch):
+    """Comportamento de antes: sem CARTEIRA_ATUAL, continua 100% caixa."""
+    monkeypatch.delenv("CARTEIRA_ATUAL", raising=False)
+
+    rec = _json.loads(
+        (_rodar_motor_em_tmp(tmp_path, monkeypatch) / "recomendacao.json").read_text(encoding="utf-8")
+    )["recomendacao"]
+
+    assert rec["current_weights"] == {"USD": 1.0}
+
+
+def test_carteira_pesa_mais_que_o_capital_quando_soma_mais(tmp_path, monkeypatch):
+    """O patrimônio é o que a pessoa tem, não o CAPITAL_INICIAL."""
+    monkeypatch.setenv("CARTEIRA_ATUAL", "BTC:50000,USD:10000")
+    monkeypatch.setenv("CAPITAL_INICIAL", "10000")
+
+    rec = _json.loads(
+        (_rodar_motor_em_tmp(tmp_path, monkeypatch) / "recomendacao.json").read_text(encoding="utf-8")
+    )["recomendacao"]
+
+    assert abs(rec["current_weights"]["BTC"] - 50000 / 60000) < 0.01
+    assert rec["hedge"]["cash_amount"] > 0
+
+
+def test_motor_publica_as_series_em_texto_e_nao_mais_png(tmp_path, monkeypatch):
+    """Os alerta_*.png eram 98,6% do repositório: 126 MB em 77 dias.
+
+    Cada dia eram 4 imagens de ~150 KB cometidas de novo. Binário regenerado
+    não tem delta entre uma versão e outra, então o packfile guardava as duas
+    inteiras. Texto comprime — e o painel desenha o mesmo leque em SVG.
+    """
+    import json as _json
+
+    docs = _rodar_motor_em_tmp(tmp_path, monkeypatch)
+    dados = _json.loads((docs / "data.json").read_text(encoding="utf-8"))
+
+    assert not list(docs.glob("alerta_*.png")), "o motor voltou a gerar PNGs por ativo"
+
+    graficos = dados["graficos"]
+    for ativo in dados["ativos"]:
+        g = graficos[ativo["moeda"]]
+        assert len(g["datas"]) == len(g["fechamento"]) > 1
+        assert g["projecao"] is not None
+        # o painel desenha o leque com estes quantis
+        assert set(g["projecao"]["quantis"]) >= {"p5", "p95"}
+
+
+def test_motor_nao_publica_mais_o_campo_imagem(tmp_path, monkeypatch):
+    """'imagem' apontava para um PNG que não é mais servido."""
+    import json as _json
+
+    docs = _rodar_motor_em_tmp(tmp_path, monkeypatch)
+    dados = _json.loads((docs / "data.json").read_text(encoding="utf-8"))
+
+    for ativo in dados["ativos"]:
+        assert "imagem" not in ativo
+
+
+def test_painel_nao_referencia_png():
+    """Nada no painel pode apontar para um arquivo que não é publicado."""
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+
+    assert ".png" not in js

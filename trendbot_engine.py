@@ -21,7 +21,8 @@ import os
 from datetime import datetime, timedelta
 
 from trendbot.assets import CASH, moeda_canonica
-from trendbot.config import PortfolioState, Settings, get_profile
+from trendbot.config import (PortfolioState, Settings, get_profile,
+                            parse_carteira)
 from trendbot.data import build_market_data, describe_source, ultimos_erros_rede
 from trendbot.forecast import forecast_universe, HORIZONS
 
@@ -39,6 +40,9 @@ HOJE = datetime.now().strftime("%d/%m/%Y")
 # diferentes, e o README diz isso para ninguém ler um como se fosse o outro.
 # Cada entrada tem ~250 bytes, então subir muito aqui vira peso diário no git.
 LIMITE_HISTORICO = 400
+
+# Quantos dias de histórico vão para o gráfico do painel (texto, no data.json)
+DIAS_GRAFICO = 365
 
 ALVO_COBERTURA = 0.90
 MINIMO_AMOSTRA_CALIBRACAO = 40
@@ -152,12 +156,33 @@ def _mapa_de_precos_por_dia(precos) -> dict[str, dict]:
     import pandas as pd
 
     mapa: dict[str, dict] = {}
-    for simbolo in getattr(precos, "columns", []):
-        serie = precos[simbolo].dropna()
-        mapa[simbolo] = {
-            pd.Timestamp(i).date(): float(v) for i, v in serie.items()
-        }
+    for coluna in getattr(precos, "columns", []):
+        simbolo = moeda_canonica(str(coluna))
+        if not simbolo:
+            continue
+        serie = precos[coluna].dropna()
+        dias = {pd.Timestamp(i).date(): float(v) for i, v in serie.items()}
+        # setdefault: se duas colunas canonizarem para o mesmo símbolo, as
+        # datas se somam em vez de uma coluna engolir a outra.
+        mapa.setdefault(simbolo, {}).update(dias)
     return mapa
+
+
+def _projecao_para_grafico(f30, fator: float) -> dict | None:
+    """Leque quantílico de 30 dias pronto para o painel desenhar.
+
+    Os quantis saem do modelo; aqui só recebem a MESMA contração aplicada à
+    banda publicada de 1 dia. Se o painel desenhasse o leque cru ao lado de
+    uma banda calibrada, os dois números não bateriam.
+    """
+    if f30 is None:
+        return None
+    mediana = float(f30.median_return)
+    quantis = {}
+    for nome in ("p5", "p10", "p25", "p75", "p90", "p95"):
+        bruto = float(f30.intervals.get(nome, 0.0))
+        quantis[nome] = round(mediana + (bruto - mediana) * fator, 5)
+    return {"horizonte": 30, "mediana": round(mediana, 5), "quantis": quantis}
 
 
 def _resolver_pendencias(historico: list[dict], precos) -> int:
@@ -178,7 +203,10 @@ def _resolver_pendencias(historico: list[dict], precos) -> int:
     for entrada in historico:
         if entrada.get("preco_real") is not None:
             continue
-        simbolo = entrada.get("moeda")
+        # O histórico da v1 guardava o nome ("CARDANO"), as colunas de preço
+        # usam o símbolo ("ADA"). Sem canonizar aqui, a busca falhava sempre e
+        # essas entradas ficavam pendentes para nunca mais sair.
+        simbolo = moeda_canonica(entrada.get("moeda") or "")
         if simbolo not in mapa:
             continue
         try:
@@ -241,6 +269,7 @@ def fluxo_principal() -> None:
         )
 
     dados_json: list[dict] = []
+    graficos: dict[str, dict] = {}
     for simbolo, fc in forecasts.items():
         preco = fc.price
         h1 = fc.horizons[1]
@@ -263,11 +292,23 @@ def fluxo_principal() -> None:
             "variacao": f"{variacao:+.2f}",
             "status": status,
             "emoji": emoji,
-            "imagem": f"alerta_{simbolo.lower()}.png",
+            "grafico": simbolo,
             "conviccao": round(fc.conviction, 3),
             "regime": fc.regime,
             "peso_modelo": round(fc.model_weight, 2),
         })
+
+        # Série e leque vão como TEXTO no data.json de propósito. Os PNGs
+        # diários (4 x ~150 KB) eram 98,6% do repositório — 126 MB em 77 dias
+        # — porque binário novo todo dia não tem delta para comprimir. Texto
+        # tem, e o painel desenha o gráfico em SVG.
+        serie = md.close[simbolo].dropna().tail(DIAS_GRAFICO)
+        f30 = fc.horizons.get(30)
+        graficos[simbolo] = {
+            "datas": [d.strftime("%Y-%m-%d") for d in serie.index],
+            "fechamento": [round(float(v), 2) for v in serie.to_numpy()],
+            "projecao": _projecao_para_grafico(f30, fator),
+        }
 
         # Previsão gerada a partir de DADOS SIMULADOS não entra no histórico.
         # Ela seria conferida contra o preço real no dia seguinte e entraria
@@ -332,6 +373,7 @@ def fluxo_principal() -> None:
                 "ajustado": fator != 1.0,
             },
             "ativos": dados_json,
+            "graficos": graficos,
         }, f, ensure_ascii=False, indent=4)
     logger.info("docs/data.json atualizado (%d ativos) | fonte: %s",
                 len(dados_json), fonte["nome"])
@@ -357,24 +399,36 @@ def fluxo_principal() -> None:
     # UnboundLocalError — foi o que o pandas 3 expôs.
     advise = None
 
-    # gráficos legados (mesmos nomes de arquivo que o dashboard antigo usa)
+    # Os PNGs por ativo (alerta_*.png) saíram do pipeline diário. Eram 4
+    # imagens de ~150 KB cometidas TODO DIA e viraram 98,6% do repositório
+    # (126 MB em 77 dias): binário regenerado não tem delta entre um dia e
+    # outro. O painel agora desenha o mesmo leque em SVG a partir de
+    # data.json, que é texto e comprime. Quem quiser a imagem ainda tem
+    # `trendbot report` (CLI), que continua gerando.
     try:
+        # 'report' continua necessário: é ele que desenha a alocação.
         from trendbot import report
-        for simbolo, fc in forecasts.items():
-            report.plot_forecast_fan(
-                md.close[simbolo].dropna(), fc, horizon=30,
-                output=os.path.join(DOCS, f"alerta_{simbolo.lower()}.png"))
-        try:
-            from trendbot.advisor import build_advice
-            carteira = PortfolioState(capital=float(os.getenv("CAPITAL_INICIAL", "10000")),
-                                      cash=float(os.getenv("CAPITAL_INICIAL", "10000")))
-            advise = build_advice(md, forecasts, card, profile, carteira, settings)
-            report.plot_allocation(advise.target_weights, advise.current_weights,
-                                   os.path.join(DOCS, "alocacao.png"))
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Não foi possível gerar gráfico de alocação: %s", exc)
+        from trendbot.advisor import build_advice
+        # Sem CARTEIRA_ATUAL, tudo em caixa — o comportamento de antes.
+        # Com ela, a recomendação passa a ser um rebalanceamento do que a
+        # pessoa tem, e não "como aplicar do zero".
+        posicoes, caixa = parse_carteira(os.getenv("CARTEIRA_ATUAL"))
+        capital = float(os.getenv("CAPITAL_INICIAL", "10000"))
+        # sem carteira configurada fica tudo em caixa. O advisor já usa
+        # `max(total, capital)` como piso (advisor.py), então não precisa
+        # de fallback aqui — medir a diferença deu exatamente o mesmo
+        # resultado, e uma linha que nenhum teste distingue é dívida.
+        carteira = PortfolioState(
+            capital=max(capital, sum(posicoes.values()) + caixa),
+            monthly_contribution=float(os.getenv("APORTE_MENSAL", "0")),
+            holdings=posicoes,
+            cash=caixa,
+        )
+        advise = build_advice(md, forecasts, card, profile, carteira, settings)
+        report.plot_allocation(advise.target_weights, advise.current_weights,
+                               os.path.join(DOCS, "alocacao.png"))
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Falha ao gerar gráficos: %s", exc)
+        logger.warning("Não foi possível gerar gráfico de alocação: %s", exc)
 
     meta = {"gerado_em": datetime.now().isoformat(timespec="seconds"),
             "fonte": md.source, "perfil": profile.key}

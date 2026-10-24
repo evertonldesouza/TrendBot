@@ -1,0 +1,11 @@
+{
+  "name": "trendbot",
+  "private": true,
+  "description": "Só dependências de desenvolvimento: jsdom para checar o painel (tests/painel/check.mjs)",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}

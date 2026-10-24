@@ -97,22 +97,49 @@ def test_cli_com_perfil_conservador(tmp_path, monkeypatch):
                      "--out", str(tmp_path / "s")]) == 0
 
 
-@pytest.mark.parametrize("texto,esperado", [
-    ("BTC:12000,ETH:5000", {"BTC": 12000.0, "ETH": 5000.0}),
-    ("btc:100", {"BTC": 100.0}),
-    (None, {}),
-    ("", {}),
-    ("sem-dois-pontos", {}),
+@pytest.mark.parametrize("texto,posicoes,caixa", [
+    ("BTC:12000,ETH:5000", {"BTC": 12000.0, "ETH": 5000.0}, 0.0),
+    ("btc:100", {"BTC": 100.0}, 0.0),
+    ("BTC:12000,USD:3000", {"BTC": 12000.0}, 3000.0),
+    (None, {}, 0.0),
+    ("", {}, 0.0),
+    ("sem-dois-pontos", {}, 0.0),
 ])
-def test_parse_portfolio(texto, esperado):
-    assert cli._parse_portfolio(texto, 0.0, 0.0) == esperado
+def test_parse_carteira(texto, posicoes, caixa):
+    from trendbot.config import parse_carteira
+
+    assert parse_carteira(texto) == (posicoes, caixa)
 
 
-def test_parse_portfolio_ignora_valor_nao_numerico(caplog):
-    """'BTC:dez-mil' não pode derrubar o comando."""
+def test_parse_carteira_separa_o_caixa_das_posicoes():
+    """Caixa dentro de holdings viraria "posição em dólar" — e exposição."""
+    from trendbot.config import parse_carteira
+
+    posicoes, caixa = parse_carteira("BTC:12000,ETH:5000,USD:3000")
+
+    assert "USD" not in posicoes
+    assert caixa == 3000.0
+
+
+def test_parse_carteira_aceita_o_nome_da_v1():
+    from trendbot.config import parse_carteira
+
+    assert parse_carteira("bitcoin:12000") == ({"BTC": 12000.0}, 0.0)
+
+
+def test_parse_carteira_soma_simbolo_repetido():
+    from trendbot.config import parse_carteira
+
+    assert parse_carteira("BTC:1000,BTC:2000") == ({"BTC": 3000.0}, 0.0)
+
+
+def test_parse_carteira_ignora_trecho_invalido(caplog):
+    """Uma vírgula errada não pode derrubar o relatório do dia."""
+    from trendbot.config import parse_carteira
+
     with caplog.at_level("WARNING"):
-        assert cli._parse_portfolio("BTC:dez-mil,ETH:5000", 0.0, 0.0) == {"ETH": 5000.0}
-    assert "inválido" in caplog.text
+        assert parse_carteira("lixo,BTC:dez-mil,ETH:5000") == ({"ETH": 5000.0}, 0.0)
+    assert "inválido" in caplog.text or "ignorado" in caplog.text
 
 
 def test_describe_source_name_traduz_e_devolve_o_proprio_se_desconhecido():
