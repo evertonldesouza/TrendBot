@@ -94,7 +94,9 @@ jobs:
           # Os laços evitam quebrar o job quando o arquivo não existe (um `git
           # add` sem correspondência é erro): o motor só gera os alertas e a
           # recomendação quando consegue montar a carteira.
-          for f in docs/alerta_*.png docs/recomendacao.json; do
+          # alerta_*.png saiu do versionamento: era 98,6% do tamanho do
+          # repositório. O painel desenha o leque em SVG a partir do data.json.
+          for f in docs/recomendacao.json; do
             [ -e "$f" ] && git add "$f"
           done
           # Se o ciclo não gerou recomendação, o arquivo antigo tem de sair:

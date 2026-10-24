@@ -301,6 +301,78 @@ function renderRecomendacao(rec, data) {
     bloco.hidden = false;
 }
 
+function fmtPreco(n) {
+    const v = Number(n) || 0;
+    if (v >= 1000) return (v / 1000).toFixed(1).replace('.', ',') + 'k';
+    if (v >= 1)    return v.toFixed(0);
+    return v.toFixed(3);
+}
+
+function graficoLeque(simbolo) {
+    /* Historico + leque de projecao em SVG.
+       Era um PNG de ~150 KB gerado e cometido todo dia por ativo. Mesma
+       informacao, agora derivada do data.json: texto, comprime no git e nao
+       precisa de round-trip no servidor. */
+    const g = estadoGraficos[simbolo];
+    if (!g || !Array.isArray(g.fechamento) || g.fechamento.length < 2) return '';
+
+    const hist = g.fechamento.map(Number).filter(function (v) { return isFinite(v); });
+    if (hist.length < 2) return '';
+
+    const proj = g.projecao;
+    const ultimo = hist[hist.length - 1];
+    const horizonte = proj ? (Number(proj.horizonte) || 30) : 0;
+    const mediana = proj ? Number(proj.mediana) : null;
+    const q = proj ? proj.quantis : null;
+
+    const W = 360, H = 132, L = 6, R = 44, T = 8, B = 16;
+    const iw = W - L - R, ih = H - T - B;
+
+    let lo = Math.min.apply(null, hist), hi = Math.max.apply(null, hist);
+    if (q) {
+        lo = Math.min(lo, ultimo * (1 + Number(q.p5)));
+        hi = Math.max(hi, ultimo * (1 + Number(q.p95)));
+    }
+    if (hi - lo < 1e-9) hi = lo + 1;
+    const margem = (hi - lo) * 0.06;
+    lo -= margem; hi += margem;
+
+    const xMax = (hist.length - 1) + horizonte;
+    const px = function (i) { return L + (i / xMax) * iw; };
+    const py = function (v) { return T + (1 - (v - lo) / (hi - lo)) * ih; };
+
+    const p = [];
+    p.push('<svg class="leque" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img"');
+    p.push(' aria-label="Historico de 12 meses e leque de projecao de ' + horizonte + ' dias para ' + simbolo + '">');
+
+    if (q) {
+        // triangulos: cada faixa sai do ultimo preco e abre ate o quantil
+        [['p5', 'p95', 0.10], ['p10', 'p90', 0.14], ['p25', 'p75', 0.20]].forEach(function (f) {
+            const a = ultimo * (1 + Number(q[f[0]]));
+            const b = ultimo * (1 + Number(q[f[1]]));
+            p.push('<polygon class="leque-faixa" opacity="' + f[2] + '" points="' +
+                px(hist.length - 1).toFixed(1) + ',' + py(ultimo).toFixed(1) + ' ' +
+                px(xMax).toFixed(1) + ',' + py(b).toFixed(1) + ' ' +
+                px(xMax).toFixed(1) + ',' + py(a).toFixed(1) + '"/>');
+        });
+    }
+
+    p.push('<polyline class="leque-preco" points="' +
+        hist.map(function (v, i) { return px(i).toFixed(1) + ',' + py(v).toFixed(1); }).join(' ') + '"/>');
+
+    if (mediana !== null && isFinite(mediana)) {
+        const fim = ultimo * (1 + mediana);
+        const x0 = px(hist.length - 1).toFixed(1), y0 = py(ultimo).toFixed(1);
+        const x1 = px(xMax).toFixed(1), y1 = py(fim).toFixed(1);
+        p.push('<line class="leque-mediana" x1="' + x0 + '" y1="' + y0 + '" x2="' + x1 + '" y2="' + y1 + '"/>');
+        p.push('<circle class="leque-fim" cx="' + x1 + '" cy="' + y1 + '" r="2.6"/>');
+        p.push('<text class="leque-valor" x="' + (px(xMax) + 4).toFixed(1) + '" y="' +
+               (py(fim) + 3).toFixed(1) + '">' + fmtPreco(fim) + '</text>');
+    }
+    p.push('</svg>');
+    return p.join('');
+}
+
 function renderCards(data, historico) {
     const grid = document.getElementById('dashboard-grid');
     grid.innerHTML = '';
@@ -319,6 +391,13 @@ function renderCards(data, historico) {
         } else {
             segmentos = '<div class="acc-seg pend" style="flex:3"></div>';
         }
+
+        // Peso 0 significa que a previsao é o baseline ingênuo: o modelo não
+        // está contribuindo. Dizer só o nome do modelo aqui seria insinuar que
+        // ele moveu os números — e ele não moveu.
+        const rotuloModelo = Number(ativo.peso_modelo) > 0
+            ? 'Ridge + 16 features'
+            : 'Peso do modelo: 0 — segue o baseline';
 
         const pctHtml = pct !== null
             ? '<span class="acc-pct" style="color:' + (pct >= 60 ? 'var(--up)' : 'var(--down)') + '">' + acertos + '/' + total + ' (' + pct + '%)</span>'
@@ -364,11 +443,10 @@ function renderCards(data, historico) {
                     '</div>' +
                 '</div>' +
             '</div>' +
+            '<div class="card-chart">' + graficoLeque(ativo.moeda) + '</div>' +
             '<div class="card-footer">' +
-                '<a class="chart-btn" href="./' + ativo.imagem + '" target="_blank" rel="noopener">' +
-                    '<i class="fas fa-chart-area" aria-hidden="true"></i> Ver grafico de IA' +
-                '</a>' +
-                '<span class="card-model-label">Prophet + RSI/SMA</span>' +
+                '<span class="card-chart-legend">12 meses + leque de 30 dias</span>' +
+                '<span class="card-model-label">' + rotuloModelo + '</span>' +
             '</div>';
         grid.appendChild(card);
     });
@@ -412,6 +490,10 @@ function nomeMoeda(moeda) {
 }
 
 let historicoGlobal = [];
+
+// series e leques vindos do data.json (texto). Substituem os PNGs diarios,
+// que eram 98,6% do tamanho do repositorio.
+let estadoGraficos = {};
 
 const estadoHistorico = {
     moeda: 'TODOS',
@@ -969,6 +1051,7 @@ async function init() {
         const data      = await resData.json();
         const historico = await resHist.json();
 
+        estadoGraficos = data.graficos || {};
         historicoGlobal = historico;
         carregarEstadoDaURL();
 

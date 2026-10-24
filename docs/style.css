@@ -281,17 +281,48 @@ header h1 i { margin-right: 8px; }
     background: var(--surface2);
 }
 
-.chart-btn {
-    font-size: 0.78rem;
-    color: var(--accent);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 5px;
+.card-chart {
+    padding: 4px 8px 0;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
 }
 
-.chart-btn:hover { text-decoration: underline; }
-.chart-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card-chart:empty { display: none; }
+
+.leque {
+    display: block;
+    width: 100%;
+    height: 132px;
+}
+
+.leque-preco {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+}
+
+.leque-faixa { fill: #a371f7; }
+
+.leque-mediana {
+    stroke: #a371f7;
+    stroke-width: 1.4;
+    stroke-dasharray: 4 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.leque-fim { fill: #a371f7; }
+
+.leque-valor {
+    fill: #a371f7;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.card-chart-legend {
+    font-size: 0.7rem;
+    color: var(--text-faint);
+}
 
 .card-model-label {
     font-size: 0.7rem;

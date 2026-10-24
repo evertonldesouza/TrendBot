@@ -22,6 +22,10 @@ out/
 # gráficos novos gerados pelo motor 2.x (não versionados)
 docs/alocacao.png
 docs/relatorio_completo.json
+# os PNGs por ativo também saíram: 4 imagens de ~150 KB cometidas todo dia
+# viraram 98,6% do repositório (126 MB em 77 dias). Binário regenerado não
+# tem delta entre um dia e outro; o painel agora desenha em SVG.
+docs/alerta_*.png
 
 # Editores
 .vscode/

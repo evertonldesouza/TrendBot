@@ -6,6 +6,7 @@ sintético determinístico. ``pytest tests/ -v``
 
 from __future__ import annotations
 
+import json as _json
 import pathlib
 import re
 
@@ -984,10 +985,17 @@ def test_deduplicacao_usa_o_nome_canonico():
 
 
 def test_painel_nao_cita_mais_o_modelo_antigo():
-    """O rodapé entregava 'Prophet' muito depois de o modelo ter mudado."""
+    """O rodapé entregava 'Prophet' muito depois de o modelo ter mudado.
+
+    O teste lia só o index.html e passava, enquanto o script.js — que é quem
+    monta o card na tela — continuava escrevendo 'Prophet + RSI/SMA' para toda
+    visita. Painel servido direto do docs/, então era mentira em produção.
+    """
     html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
 
     assert "Prophet" not in html
+    assert "Prophet" not in js
 
 
 def test_painel_exibe_a_avaliacao_do_modelo():
@@ -1431,7 +1439,7 @@ def _rodar_motor_em_tmp(tmp_path, monkeypatch):
          mock.patch.object(motor, "salvar_historico"):
         motor.fluxo_principal()
 
-    return _json.loads((tmp_path / "docs" / "recomendacao.json").read_text(encoding="utf-8"))
+    return tmp_path / "docs"
 
 
 def test_motor_recomenda_a_partir_da_carteira_configurada(tmp_path, monkeypatch):
@@ -1443,7 +1451,9 @@ def test_motor_recomenda_a_partir_da_carteira_configurada(tmp_path, monkeypatch)
     """
     monkeypatch.setenv("CARTEIRA_ATUAL", "BTC:12000,ETH:5000,USD:3000")
 
-    rec = _rodar_motor_em_tmp(tmp_path, monkeypatch)["recomendacao"]
+    rec = _json.loads(
+        (_rodar_motor_em_tmp(tmp_path, monkeypatch) / "recomendacao.json").read_text(encoding="utf-8")
+    )["recomendacao"]
 
     atual = rec["current_weights"]
     assert atual.get("BTC", 0) > 0, f"a posição em BTC não apareceu: {atual}"
@@ -1457,7 +1467,9 @@ def test_motor_sem_carteira_configurada_mantem_tudo_em_caixa(tmp_path, monkeypat
     """Comportamento de antes: sem CARTEIRA_ATUAL, continua 100% caixa."""
     monkeypatch.delenv("CARTEIRA_ATUAL", raising=False)
 
-    rec = _rodar_motor_em_tmp(tmp_path, monkeypatch)["recomendacao"]
+    rec = _json.loads(
+        (_rodar_motor_em_tmp(tmp_path, monkeypatch) / "recomendacao.json").read_text(encoding="utf-8")
+    )["recomendacao"]
 
     assert rec["current_weights"] == {"USD": 1.0}
 
@@ -1467,7 +1479,50 @@ def test_carteira_pesa_mais_que_o_capital_quando_soma_mais(tmp_path, monkeypatch
     monkeypatch.setenv("CARTEIRA_ATUAL", "BTC:50000,USD:10000")
     monkeypatch.setenv("CAPITAL_INICIAL", "10000")
 
-    rec = _rodar_motor_em_tmp(tmp_path, monkeypatch)["recomendacao"]
+    rec = _json.loads(
+        (_rodar_motor_em_tmp(tmp_path, monkeypatch) / "recomendacao.json").read_text(encoding="utf-8")
+    )["recomendacao"]
 
     assert abs(rec["current_weights"]["BTC"] - 50000 / 60000) < 0.01
     assert rec["hedge"]["cash_amount"] > 0
+
+
+def test_motor_publica_as_series_em_texto_e_nao_mais_png(tmp_path, monkeypatch):
+    """Os alerta_*.png eram 98,6% do repositório: 126 MB em 77 dias.
+
+    Cada dia eram 4 imagens de ~150 KB cometidas de novo. Binário regenerado
+    não tem delta entre uma versão e outra, então o packfile guardava as duas
+    inteiras. Texto comprime — e o painel desenha o mesmo leque em SVG.
+    """
+    import json as _json
+
+    docs = _rodar_motor_em_tmp(tmp_path, monkeypatch)
+    dados = _json.loads((docs / "data.json").read_text(encoding="utf-8"))
+
+    assert not list(docs.glob("alerta_*.png")), "o motor voltou a gerar PNGs por ativo"
+
+    graficos = dados["graficos"]
+    for ativo in dados["ativos"]:
+        g = graficos[ativo["moeda"]]
+        assert len(g["datas"]) == len(g["fechamento"]) > 1
+        assert g["projecao"] is not None
+        # o painel desenha o leque com estes quantis
+        assert set(g["projecao"]["quantis"]) >= {"p5", "p95"}
+
+
+def test_motor_nao_publica_mais_o_campo_imagem(tmp_path, monkeypatch):
+    """'imagem' apontava para um PNG que não é mais servido."""
+    import json as _json
+
+    docs = _rodar_motor_em_tmp(tmp_path, monkeypatch)
+    dados = _json.loads((docs / "data.json").read_text(encoding="utf-8"))
+
+    for ativo in dados["ativos"]:
+        assert "imagem" not in ativo
+
+
+def test_painel_nao_referencia_png():
+    """Nada no painel pode apontar para um arquivo que não é publicado."""
+    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
+
+    assert ".png" not in js
