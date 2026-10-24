@@ -56,7 +56,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # jsdom 30 exige Node >= 22.22. Com 20 o npm até instala (só avisa
+          # EBADENGINE) e o check quebra depois com um erro que não diz nada
+          # sobre a versão. Ficou explícito em package.json também.
+          node-version: '22'
 
       - name: Instalar dependências
         run: npm ci --no-fund --no-audit
