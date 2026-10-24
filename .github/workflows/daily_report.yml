@@ -42,6 +42,62 @@ jobs:
           PYTHONHASHSEED: 1
         run: pytest tests/ -q
 
+  painel:
+    name: Painel (JS)
+    # O painel é servido direto do docs/ e não era validado por nada. Já
+    # entregou função definida e nunca chamada, e link para imagem que não
+    # existia mais — os dois passam batido porque o navegador não reclama de
+    # função parada nem valida href. Roda em PR (onde o erro aparece), não no
+    # diário, para não gastar tempo todo dia.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        run: npm ci --no-fund --no-audit
+
+      - name: Checar o painel contra os dados publicados
+        run: node tests/painel/check.mjs
+
+  imagem:
+    name: Imagem Docker
+    # A imagem nunca era construída por nada. Um Dockerfile quebrado — ou um
+    # requirements.txt sem o uvicorn, que é o CMD — só aparecia quando alguém
+    # tentava subir o contêiner à mão, quando já era tarde.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir a imagem
+        run: docker build -t trendbot:ci .
+
+      - name: Subir e esperar ficar saudável
+        run: |
+          docker run -d --name trendbot -p 8000:8000 trendbot:ci
+          for i in $(seq 1 40); do
+            estado=$(docker inspect -f '{{.State.Health.Status}}' trendbot)
+            echo "health: $estado"
+            if [ "$estado" = "healthy" ]; then exit 0; fi
+            if [ "$estado" = "unhealthy" ]; then break; fi
+            sleep 2
+          done
+          echo "::error::o contêiner não ficou saudável; logs abaixo"
+          docker logs trendbot
+          exit 1
+
+      - name: Responder na porta publicada
+        run: curl -fsS http://127.0.0.1:8000/api/health
+
+      - name: Limpar
+        if: always()
+        run: docker rm -f trendbot || true
+
   relatorio:
     name: Gerar e publicar relatório
     needs: qualidade

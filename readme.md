@@ -561,7 +561,7 @@ coverage run --source=trendbot,trendbot_engine,trendbot_coleta,app -m pytest tes
 coverage report
 ```
 
-**110 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
+**124 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
 **88%** do núcleo.
 
 | Módulo | Cobertura | O que segura no lugar |
@@ -578,6 +578,34 @@ coverage report
 | `trendbot_coleta.py` | 85% | shim de compatibilidade da v1 |
 | `report.py` | 82% | gráficos e payload |
 | `data.py` | 73% | provedores, cache e fallback |
+
+### O painel também é testado
+
+O dashboard é servido direto do `docs/`, sem build. Durante muito tempo isso
+significou que **nada** o validava — e ele já entregou função definida e nunca
+chamada, e link para imagem que deixou de existir. Os dois passam batido porque
+o navegador não reclama de função parada nem confere `href`.
+
+```bash
+npm ci
+node tests/painel/check.mjs
+```
+
+Sobe o DOM com os dados publicados e confere: sintaxe, **função definida e
+nunca chamada**, um card por ativo, o gráfico desenhado, nenhum link para
+arquivo não publicado, e o veredito do modelo preenchido — porque um painel que
+esconde as próprias limitações está justamente burlando a proposta do projeto.
+
+### A imagem Docker
+
+```bash
+docker build -t trendbot .
+docker run --rm -p 8000:8000 trendbot
+```
+
+O CI constrói a imagem e espera o healthcheck dela ficar `healthy` em todo PR.
+Antes, um Dockerfile quebrado — ou um `requirements.txt` sem o uvicorn, que é o
+`CMD` — só aparecia quando alguém tentava subir o contêiner à mão.
 
 Os testes que mais importam são os que travam uma decisão de projeto, não os
 que exercitam código:

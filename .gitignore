@@ -27,6 +27,9 @@ docs/relatorio_completo.json
 # tem delta entre um dia e outro; o painel agora desenha em SVG.
 docs/alerta_*.png
 
+# Node (só para checar o painel; ver tests/painel/check.mjs)
+node_modules/
+
 # Editores
 .vscode/
 .idea/

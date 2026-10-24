@@ -26,3 +26,10 @@ data
 
 tests
 readme.md
+
+# jsdom, usado só para checar o painel (tests/painel/check.mjs). O COPY do
+# Dockerfile é explícito, então isso não vaza para a imagem — mas evita
+# mandar 36 pacotes de contexto de build para o daemon todo build.
+node_modules
+package.json
+package-lock.json
