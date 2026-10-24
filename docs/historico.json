@@ -985,9 +985,9 @@
         "previsao": 0.24,
         "confianca_min": 0.22,
         "confianca_max": 0.26,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 0.24,
+        "erro": -0.0,
+        "acerto": "✅"
     },
     {
         "data": "14/10/2026",
@@ -1175,9 +1175,9 @@
         "previsao": 83123.34,
         "confianca_min": 81045.86,
         "confianca_max": 85352.51,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 82943.83,
+        "erro": -179.51,
+        "acerto": "✅"
     },
     {
         "data": "20/10/2026",
@@ -1185,9 +1185,9 @@
         "previsao": 2468.18,
         "confianca_min": 2346.07,
         "confianca_max": 2589.0,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 2446.49,
+        "erro": -21.69,
+        "acerto": "✅"
     },
     {
         "data": "20/10/2026",
@@ -1195,9 +1195,9 @@
         "previsao": 107.06,
         "confianca_min": 100.32,
         "confianca_max": 114.44,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null
+        "preco_real": 106.39,
+        "erro": -0.67,
+        "acerto": "✅"
     },
     {
         "data": "21/10/2026",
@@ -1289,9 +1289,9 @@
         "previsao": 0.22,
         "confianca_min": 0.21,
         "confianca_max": 0.23,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null,
+        "preco_real": 0.2,
+        "erro": -0.02,
+        "acerto": "❌",
         "fonte": "coingecko",
         "calibracao": 0.9213
     },
@@ -1301,9 +1301,9 @@
         "previsao": 81626.05,
         "confianca_min": 79704.76,
         "confianca_max": 83461.26,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null,
+        "preco_real": 79785.55,
+        "erro": -1840.5,
+        "acerto": "✅",
         "fonte": "coingecko",
         "calibracao": 0.9213
     },
@@ -1313,9 +1313,9 @@
         "previsao": 2410.41,
         "confianca_min": 2334.79,
         "confianca_max": 2456.13,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null,
+        "preco_real": 2308.05,
+        "erro": -102.36,
+        "acerto": "❌",
         "fonte": "coingecko",
         "calibracao": 0.9213
     },
@@ -1325,10 +1325,58 @@
         "previsao": 105.04,
         "confianca_min": 101.52,
         "confianca_max": 108.2,
+        "preco_real": 100.08,
+        "erro": -4.96,
+        "acerto": "❌",
+        "fonte": "coingecko",
+        "calibracao": 0.9213
+    },
+    {
+        "data": "24/10/2026",
+        "moeda": "ADA",
+        "previsao": 0.2,
+        "confianca_min": 0.19,
+        "confianca_max": 0.21,
         "preco_real": null,
         "erro": null,
         "acerto": null,
         "fonte": "coingecko",
-        "calibracao": 0.9213
+        "calibracao": 0.9402
+    },
+    {
+        "data": "24/10/2026",
+        "moeda": "BTC",
+        "previsao": 79879.8,
+        "confianca_min": 78234.9,
+        "confianca_max": 81082.63,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null,
+        "fonte": "coingecko",
+        "calibracao": 0.9402
+    },
+    {
+        "data": "24/10/2026",
+        "moeda": "ETH",
+        "previsao": 2308.04,
+        "confianca_min": 2237.76,
+        "confianca_max": 2362.98,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null,
+        "fonte": "coingecko",
+        "calibracao": 0.9402
+    },
+    {
+        "data": "24/10/2026",
+        "moeda": "SOL",
+        "previsao": 100.12,
+        "confianca_min": 96.65,
+        "confianca_max": 105.26,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null,
+        "fonte": "coingecko",
+        "calibracao": 0.9402
     }
 ]
