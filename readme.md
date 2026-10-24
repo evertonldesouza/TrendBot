@@ -536,6 +536,10 @@ FONTE_DADOS=auto
 PERFIL_RISCO=moderado
 CAPITAL_INICIAL=25000
 APORTE_MENSAL=1000
+
+# O que você tem hoje: SÍMBOLO:valor_em_USD, separados por vírgula.
+# Aceita nome ("bitcoin") ou símbolo ("BTC").
+CARTEIRA_ATUAL=BTC:12000,ETH:5000,USD:3000
 BENCHMARK=BTC
 TAXA_LIVRE_RISCO=0.045
 
@@ -607,6 +611,26 @@ O workflow `.github/workflows/daily_report.yml` roda diariamente:
    e os gráficos. O dashboard estático do GitHub Pages em `docs/` continua
    funcionando sem alteração, e o histórico de acertos segue sendo conferido
    dia após dia (critério: preço realizado dentro do intervalo de 90%).
+
+#### A recomendação precisa conhecer a sua carteira
+
+Sem `CARTEIRA_ATUAL`, o motor monta a carteira como **100% caixa** — e a
+recomendação publicada todo dia é sempre a mesma, "aplique 69% a partir do
+caixa", independentemente do que você tem. Ela não está errada, mas é uma
+resposta para uma pergunta que ninguém fez.
+
+Com `CARTEIRA_ATUAL`, o relatório passa a ser um **rebalanceamento**: compara o
+que você tem com o alvo e diz o que mover, e o colchão de caixa é calculado
+sobre o patrimônio real.
+
+Aceita nome ou símbolo (`bitcoin:12000` e `BTC:12000` dão no mesmo), soma
+símbolo repetido, e ignora trecho malformado com um aviso — derrubar o
+relatório do dia por causa de uma vírgula errada seria desproporcional. Se a
+soma das posições passar do `CAPITAL_INICIAL`, vale o que você tem: o
+patrimônio é o que está na carteira, não o que foi declarado.
+
+Esse parsing existia em três cópias (motor, CLI e API) e agora é um só, em
+`trendbot/config.py::parse_carteira`.
 
 **Nenhum segredo é obrigatório.** Opcionais: variáveis `MOEDAS_ALVO`,
 `DIAS_HISTORICO`, `PERFIL_RISCO`, `CAPITAL_INICIAL`, `TENTATIVAS_REDE`, e o

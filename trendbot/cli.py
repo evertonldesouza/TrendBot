@@ -22,8 +22,7 @@ import pandas as pd
 from . import backtest as bt
 from . import report
 from .advisor import build_advice
-from .assets import CASH
-from .config import PROFILES, PortfolioState, Settings, get_profile
+from .config import PROFILES, PortfolioState, Settings, get_profile, parse_carteira
 from .data import build_market_data, describe_source
 from .forecast import forecast_universe, HORIZONS
 
@@ -56,20 +55,6 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
                    help="Só grava o JSON, sem resumo no terminal.")
     p.add_argument("-v", "--verbose", action="store_true", help="Log detalhado.")
     return p.parse_args(argv)
-
-
-def _parse_portfolio(text: str | None, capital: float, monthly: float) -> dict[str, float]:
-    holdings: dict[str, float] = {}
-    if text:
-        for chunk in text.split(","):
-            if ":" not in chunk:
-                continue
-            sym, value = chunk.split(":", 1)
-            try:
-                holdings[sym.strip().upper()] = float(value)
-            except ValueError:
-                logger.warning("Valor inválido ignorado: %s", chunk)
-    return holdings
 
 
 LABELS_FONTE = {
@@ -172,14 +157,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         settings.assets = resolve_assets([a.strip() for a in args.ativos.split(",") if a.strip()])
 
     profile = get_profile(args.perfil)
-    holdings = _parse_portfolio(args.carteira, 0.0, 0.0)
+    holdings, caixa = parse_carteira(args.carteira)
     capital = args.capital if args.capital is not None else float(
         os.getenv("CAPITAL_INICIAL", "10000"))
     monthly = args.aporte if args.aporte is not None else float(
         os.getenv("APORTE_MENSAL", "0"))
 
-    if holdings:
-        cash = holdings.pop(CASH, 0.0)
+    if holdings or caixa > 0:
+        cash = caixa
         invested = sum(holdings.values())
     else:
         invested, cash = 0.0, capital

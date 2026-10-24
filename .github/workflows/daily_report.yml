@@ -69,6 +69,11 @@ jobs:
           DIAS_HISTORICO: ${{ vars.DIAS_HISTORICO || '1095' }}
           PERFIL_RISCO: ${{ vars.PERFIL_RISCO || 'moderado' }}
           CAPITAL_INICIAL: ${{ vars.CAPITAL_INICIAL || '10000' }}
+          # Sem CARTEIRA_ATUAL a recomendacao pressupoe 100% caixa. Defina em
+          # Settings > Secrets and variables > Actions > Variables para que o
+          # relatorio rebalanceie as posicoes que voce realmente tem.
+          CARTEIRA_ATUAL: ${{ vars.CARTEIRA_ATUAL }}
+          APORTE_MENSAL: ${{ vars.APORTE_MENSAL }}
           FONTE_DADOS: 'auto'
         run: python trendbot_engine.py
 

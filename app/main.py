@@ -31,7 +31,8 @@ from trendbot import backtest as bt
 from trendbot import report
 from trendbot.advisor import build_advice
 from trendbot.assets import CASH, known_assets, resolve_assets
-from trendbot.config import PROFILES, PortfolioState, Settings, get_profile
+from trendbot.config import (PROFILES, PortfolioState, Settings, get_profile,
+                            parse_carteira)
 from trendbot.data import build_market_data, describe_source
 from trendbot.forecast import forecast_universe, HORIZONS
 
@@ -198,21 +199,7 @@ def relatorio_get(
     carteira: str = Query(""),
     backtest: bool = Query(True),
 ) -> JSONResponse:
-    posicoes: dict[str, float] = {}
-    caixa = 0.0
-    if carteira:
-        for chunk in carteira.split(","):
-            if ":" not in chunk:
-                continue
-            sym, value = chunk.split(":", 1)
-            try:
-                val = float(value)
-            except ValueError:
-                continue
-            if sym.strip().upper() == CASH:
-                caixa = val
-            else:
-                posicoes[sym.strip().upper()] = val
+    posicoes, caixa = parse_carteira(carteira)
     req = RelatorioRequest(
         perfil=perfil,
         ativos=[a for a in ativos.split(",") if a.strip()] or None,

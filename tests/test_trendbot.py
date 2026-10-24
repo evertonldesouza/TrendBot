@@ -1342,3 +1342,62 @@ def test_painel_revela_quando_os_intervalos_foram_calibrados():
 
     assert "data.calibracao" in js, "o painel ignora a calibração publicada"
     assert 'id="model-card"' in html
+
+
+def _rodar_motor_em_tmp(tmp_path, monkeypatch):
+    """Roda o ciclo num diretório descartável e devolve o recomendacao.json."""
+    import importlib.util
+    import json as _json
+    from unittest import mock
+
+    (tmp_path / "docs").mkdir(exist_ok=True)
+    origem = pathlib.Path(__file__).resolve().parent.parent / "trendbot_engine.py"
+    monkeypatch.chdir(tmp_path)
+    espec = importlib.util.spec_from_file_location("motor_cart", str(origem))
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    with mock.patch.object(motor, "carregar_historico", return_value=[]), \
+         mock.patch.object(motor, "salvar_historico"):
+        motor.fluxo_principal()
+
+    return _json.loads((tmp_path / "docs" / "recomendacao.json").read_text(encoding="utf-8"))
+
+
+def test_motor_recomenda_a_partir_da_carteira_configurada(tmp_path, monkeypatch):
+    """Sem carteira configurada, toda recomendação era "aplique do zero".
+
+    O motor montava a carteira como 100% caixa, então o publicado todo dia
+    dizia como aplicar um dinheiro parado — nunca como rebalancear o que a
+    pessoa já tem.
+    """
+    monkeypatch.setenv("CARTEIRA_ATUAL", "BTC:12000,ETH:5000,USD:3000")
+
+    rec = _rodar_motor_em_tmp(tmp_path, monkeypatch)["recomendacao"]
+
+    atual = rec["current_weights"]
+    assert atual.get("BTC", 0) > 0, f"a posição em BTC não apareceu: {atual}"
+    assert atual.get("ETH", 0) > 0
+    # 12000 + 5000 + 3000 = 20000; BTC é 60% e ETH 25%
+    assert abs(atual["BTC"] - 0.6) < 0.01, atual
+    assert abs(atual["ETH"] - 0.25) < 0.01, atual
+
+
+def test_motor_sem_carteira_configurada_mantem_tudo_em_caixa(tmp_path, monkeypatch):
+    """Comportamento de antes: sem CARTEIRA_ATUAL, continua 100% caixa."""
+    monkeypatch.delenv("CARTEIRA_ATUAL", raising=False)
+
+    rec = _rodar_motor_em_tmp(tmp_path, monkeypatch)["recomendacao"]
+
+    assert rec["current_weights"] == {"USD": 1.0}
+
+
+def test_carteira_pesa_mais_que_o_capital_quando_soma_mais(tmp_path, monkeypatch):
+    """O patrimônio é o que a pessoa tem, não o CAPITAL_INICIAL."""
+    monkeypatch.setenv("CARTEIRA_ATUAL", "BTC:50000,USD:10000")
+    monkeypatch.setenv("CAPITAL_INICIAL", "10000")
+
+    rec = _rodar_motor_em_tmp(tmp_path, monkeypatch)["recomendacao"]
+
+    assert abs(rec["current_weights"]["BTC"] - 50000 / 60000) < 0.01
+    assert rec["hedge"]["cash_amount"] > 0
