@@ -21,7 +21,8 @@ import os
 from datetime import datetime, timedelta
 
 from trendbot.assets import CASH, moeda_canonica
-from trendbot.config import PortfolioState, Settings, get_profile
+from trendbot.config import (PortfolioState, Settings, get_profile,
+                            parse_carteira)
 from trendbot.data import build_market_data, describe_source, ultimos_erros_rede
 from trendbot.forecast import forecast_universe, HORIZONS
 
@@ -152,11 +153,15 @@ def _mapa_de_precos_por_dia(precos) -> dict[str, dict]:
     import pandas as pd
 
     mapa: dict[str, dict] = {}
-    for simbolo in getattr(precos, "columns", []):
-        serie = precos[simbolo].dropna()
-        mapa[simbolo] = {
-            pd.Timestamp(i).date(): float(v) for i, v in serie.items()
-        }
+    for coluna in getattr(precos, "columns", []):
+        simbolo = moeda_canonica(str(coluna))
+        if not simbolo:
+            continue
+        serie = precos[coluna].dropna()
+        dias = {pd.Timestamp(i).date(): float(v) for i, v in serie.items()}
+        # setdefault: se duas colunas canonizarem para o mesmo símbolo, as
+        # datas se somam em vez de uma coluna engolir a outra.
+        mapa.setdefault(simbolo, {}).update(dias)
     return mapa
 
 
@@ -178,7 +183,10 @@ def _resolver_pendencias(historico: list[dict], precos) -> int:
     for entrada in historico:
         if entrada.get("preco_real") is not None:
             continue
-        simbolo = entrada.get("moeda")
+        # O histórico da v1 guardava o nome ("CARDANO"), as colunas de preço
+        # usam o símbolo ("ADA"). Sem canonizar aqui, a busca falhava sempre e
+        # essas entradas ficavam pendentes para nunca mais sair.
+        simbolo = moeda_canonica(entrada.get("moeda") or "")
         if simbolo not in mapa:
             continue
         try:
@@ -366,8 +374,21 @@ def fluxo_principal() -> None:
                 output=os.path.join(DOCS, f"alerta_{simbolo.lower()}.png"))
         try:
             from trendbot.advisor import build_advice
-            carteira = PortfolioState(capital=float(os.getenv("CAPITAL_INICIAL", "10000")),
-                                      cash=float(os.getenv("CAPITAL_INICIAL", "10000")))
+            # Sem CARTEIRA_ATUAL, tudo em caixa — o comportamento de antes.
+            # Com ela, a recomendação passa a ser um rebalanceamento do que a
+            # pessoa tem, e não "como aplicar do zero".
+            posicoes, caixa = parse_carteira(os.getenv("CARTEIRA_ATUAL"))
+            capital = float(os.getenv("CAPITAL_INICIAL", "10000"))
+            # sem carteira configurada fica tudo em caixa. O advisor já usa
+            # `max(total, capital)` como piso (advisor.py), então não precisa
+            # de fallback aqui — medir a diferença deu exatamente o mesmo
+            # resultado, e uma linha que nenhum teste distingue é dívida.
+            carteira = PortfolioState(
+                capital=max(capital, sum(posicoes.values()) + caixa),
+                monthly_contribution=float(os.getenv("APORTE_MENSAL", "0")),
+                holdings=posicoes,
+                cash=caixa,
+            )
             advise = build_advice(md, forecasts, card, profile, carteira, settings)
             report.plot_allocation(advise.target_weights, advise.current_weights,
                                    os.path.join(DOCS, "alocacao.png"))

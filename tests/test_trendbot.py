@@ -1289,6 +1289,76 @@ def test_pendencia_sem_o_preco_do_dia_seguinte_fica_pendente():
     assert historico[0]["acerto"] is None
 
 
+def test_pendencia_com_nome_da_v1_e_resolvida():
+    """O histórico da v1 guardava o nome ("CARDANO"), o preço vem por símbolo.
+
+    A busca era `if simbolo not in mapa: continue` contra um mapa montado com
+    as colunas canônicas, então "CARDANO" nunca casava com "ADA" e a entrada
+    ficava pendente para sempre. Era o caso de 13/10 e 20/10/2026, travados
+    havia dias — o registro de acerto do modelo ia ficando furado sem ninguém
+    notar, porque as pendências antigas simplesmente desapareciam da conta.
+    """
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend3", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"ADA": [1.0, 1.1]},
+        index=pd.to_datetime(["2026-10-13", "2026-10-14"]),
+    )
+    historico = [{
+        "data": "13/10/2026", "moeda": "CARDANO", "previsao": 1.0,
+        "confianca_min": 0.9, "confianca_max": 1.2,
+        "preco_real": None, "erro": None, "acerto": None,
+    }]
+
+    assert motor._resolver_pendencias(historico, precos) == 1
+    assert historico[0]["preco_real"] == 1.1
+    assert historico[0]["acerto"] == "✅"
+
+
+def test_pendencia_de_ativo_fora_da_serie_continua_pendente():
+    """Canonizar não é casar qualquer coisa: ativo ausente segue pendente."""
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend4", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"BTC": [100.0, 200.0]},
+        index=pd.to_datetime(["2026-10-20", "2026-10-21"]),
+    )
+    historico = [{
+        "data": "20/10/2026", "moeda": "DOGE", "previsao": 100.0,
+        "confianca_min": 90.0, "confianca_max": 110.0,
+        "preco_real": None, "erro": None, "acerto": None,
+    }]
+
+    assert motor._resolver_pendencias(historico, precos) == 0
+    assert historico[0]["preco_real"] is None
+    assert historico[0]["acerto"] is None
+
+
+def test_indice_de_precos_canoniza_o_nome_da_coluna():
+    """O índice é por símbolo, venha a coluna como vier."""
+    import importlib.util
+    import pandas as pd
+
+    espec = importlib.util.spec_from_file_location("motor_pend5", "trendbot_engine.py")
+    motor = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(motor)
+
+    precos = pd.DataFrame(
+        {"cardano": [1.0]}, index=pd.to_datetime(["2026-10-14"])
+    )
+    assert set(motor._mapa_de_precos_por_dia(precos)) == {"ADA"}
+
+
 def test_grafico_de_previsao_gera_o_arquivo(tmp_path):
     """O leque de projeção desenhava uma data inválida e morria.
 
