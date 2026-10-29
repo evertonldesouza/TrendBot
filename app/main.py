@@ -43,6 +43,13 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
+# O núcleo compartilhado do painel (docs/comum.js) mora em docs/ porque o
+# GitHub Pages serve o branch sem build: para ser público, o arquivo tem de
+# estar fisicamente lá. A API serve esse MESMO arquivo, em vez de manter uma
+# cópia em app/static/. Foi exatamente aí que os dois painéis divergiram: duas
+# cópias do leque e da formatação, sem nada que as mantivesse iguais.
+DOCS_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "docs"))
+
 # cache simples em memória: o custo pesado é a simulação/previsão, não o HTTP
 _CACHE: dict[str, tuple[float, dict]] = {}
 CACHE_TTL = int(os.getenv("CACHE_TTL", "600"))
@@ -245,6 +252,14 @@ def index() -> FileResponse:
 
 # estáticos em /static (o painel referencia /static/app.js e /static/styles.css)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# O conteúdo de docs/ é público por definição — é o que o Pages serve — então
+# expô-lo aqui não vaza nada. Se o diretório não existir, o painel interativo
+# fica sem o núcleo e quebra, por isso o aviso é erro e não warning.
+if os.path.isdir(DOCS_DIR):
+    app.mount("/comum", StaticFiles(directory=DOCS_DIR), name="comum")
+else:
+    logger.error("docs/ não encontrado em %s: o painel não terá comum.js", DOCS_DIR)
 
 
 if __name__ == "__main__":

@@ -10,8 +10,11 @@ __pycache__
 .coverage
 htmlcov
 
-# dados publicados e artefatos do job diário: ~1 MB que a API não lê
-docs
+# dados publicados: a API não lê, e o painel interativo busca do servidor.
+# Só os JSON saem — o RESTO de docs/ tem de entrar, porque é lá que mora o
+# núcleo compartilhado (docs/comum.js), servido pela API em /comum. Excluir
+# o diretório inteiro derruba o painel interativo com TB is not defined.
+docs/*.json
 
 # resultado de execução local
 out

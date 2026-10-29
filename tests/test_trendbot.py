@@ -663,17 +663,19 @@ def test_coingecko_respeita_o_limite_de_historico_da_api_publica(monkeypatch, tm
 # ---------------------------------------------------------------------------
 
 def _aliases_de_moeda_do_dashboard() -> dict[str, str]:
-    """Lê o mapa MOEDAS_CANONICAS de docs/script.js.
+    """Lê o mapa MOEDAS_CANONICAS do núcleo compartilhado (docs/comum.js).
 
-    Lê o arquivo de verdade em vez de repetir a tabela aqui: o que importa é
-    que o dashboard consiga unificar os nomes, não que exista uma lista em
-    Python.
+    O mapa mora em comum.js porque os DOIS painéis usam: o público (docs/) e
+    o interativo da API. Lê o arquivo de verdade em vez de repetir a tabela
+    aqui: o que importa é que os painéis consigam unificar os nomes, não que
+    exista uma lista em Python.
     """
     import re
 
-    js = pathlib.Path("docs/script.js").read_text(encoding="utf-8")
-    bloco = re.search(r"const MOEDAS_CANONICAS = \{(.*?)\n\};", js, re.S)
-    assert bloco, "MOEDAS_CANONICAS sumiu de docs/script.js"
+    js = pathlib.Path("docs/comum.js").read_text(encoding="utf-8")
+    # \s* antes do fechamento: em comum.js o mapa está indentado dentro do IIFE
+    bloco = re.search(r"const MOEDAS_CANONICAS = \{(.*?)\n\s*\};", js, re.S)
+    assert bloco, "MOEDAS_CANONICAS sumiu de docs/comum.js"
 
     mapa: dict[str, str] = {}
     for simbolo, _nome, aliases in re.findall(
