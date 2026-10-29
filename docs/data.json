@@ -1,5 +1,5 @@
 {
-    "ultima_atualizacao": "29/10/2026 17:16",
+    "ultima_atualizacao": "29/10/2026 18:50",
     "fonte": {
         "detalhes": [],
         "id": "coingecko",
@@ -9,8 +9,8 @@
     },
     "modelo": {
         "n_assets": 4,
-        "avg_skill": -0.07124510738749348,
-        "avg_hit_rate": 0.40705128205128205,
+        "avg_skill": -0.06707030376055033,
+        "avg_hit_rate": 0.41955128205128206,
         "avg_coverage": 0.925,
         "observations": 28,
         "verdict": "Modelo sem habilidade fora da amostra neste recorte.",
@@ -31,57 +31,57 @@
             "moeda": "ADA",
             "preco": "0.20",
             "previsao": "0.20",
-            "confianca_min": "0.20",
-            "confianca_max": "0.22",
-            "variacao": "-0.51",
+            "confianca_min": "0.19",
+            "confianca_max": "0.21",
+            "variacao": "-0.56",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "grafico": "ADA",
-            "conviccao": -0.11,
+            "conviccao": -0.112,
             "regime": "neutro",
             "peso_modelo": 0.0
         },
         {
             "moeda": "BTC",
-            "preco": "81,023.17",
-            "previsao": "81,048.00",
-            "confianca_min": "79,153.44",
-            "confianca_max": "82,888.45",
-            "variacao": "+0.03",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "80,631.86",
+            "previsao": "80,465.20",
+            "confianca_min": "78,756.45",
+            "confianca_max": "82,473.47",
+            "variacao": "-0.21",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "grafico": "BTC",
-            "conviccao": -0.057,
+            "conviccao": -0.058,
             "regime": "risco-ligado",
             "peso_modelo": 0.0
         },
         {
             "moeda": "ETH",
-            "preco": "2,349.58",
-            "previsao": "2,354.45",
-            "confianca_min": "2,286.72",
-            "confianca_max": "2,404.29",
-            "variacao": "+0.21",
+            "preco": "2,326.12",
+            "previsao": "2,330.07",
+            "confianca_min": "2,263.74",
+            "confianca_max": "2,380.07",
+            "variacao": "+0.17",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "grafico": "ETH",
-            "conviccao": -0.07,
+            "conviccao": -0.072,
             "regime": "risco-ligado",
             "peso_modelo": 0.01
         },
         {
             "moeda": "SOL",
-            "preco": "101.64",
-            "previsao": "102.12",
-            "confianca_min": "98.67",
-            "confianca_max": "105.30",
-            "variacao": "+0.47",
+            "preco": "100.39",
+            "previsao": "100.71",
+            "confianca_min": "97.44",
+            "confianca_max": "103.99",
+            "variacao": "+0.32",
             "status": "ALTA LEVE",
             "emoji": "⬆️",
             "grafico": "SOL",
-            "conviccao": -0.083,
+            "conviccao": -0.085,
             "regime": "risco-ligado",
-            "peso_modelo": 0.0
+            "peso_modelo": 0.01
         }
     ],
     "graficos": {
@@ -822,14 +822,14 @@
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.08968,
+                "mediana": -0.09073,
                 "quantis": {
-                    "p5": -0.33916,
-                    "p10": -0.29135,
-                    "p25": -0.20254,
-                    "p75": 0.04056,
-                    "p90": 0.17519,
-                    "p95": 0.26427
+                    "p5": -0.34023,
+                    "p10": -0.29243,
+                    "p25": -0.20361,
+                    "p75": 0.03957,
+                    "p90": 0.17428,
+                    "p95": 0.26343
                 }
             }
         },
@@ -1566,18 +1566,18 @@
                 80048.85,
                 80029.43,
                 80800.83,
-                81023.17
+                80631.86
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.0249,
+                "mediana": -0.02529,
                 "quantis": {
-                    "p5": -0.17286,
-                    "p10": -0.14244,
-                    "p25": -0.08873,
-                    "p75": 0.04377,
-                    "p90": 0.11018,
-                    "p95": 0.15196
+                    "p5": -0.17323,
+                    "p10": -0.14282,
+                    "p25": -0.08912,
+                    "p75": 0.04337,
+                    "p90": 0.10978,
+                    "p95": 0.15156
                 }
             }
         },
@@ -2314,18 +2314,18 @@
                 2326.83,
                 2320.67,
                 2347.32,
-                2349.58
+                2326.12
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.04096,
+                "mediana": -0.04175,
                 "quantis": {
-                    "p5": -0.233,
-                    "p10": -0.19454,
-                    "p25": -0.12532,
-                    "p75": 0.05223,
-                    "p90": 0.14463,
-                    "p95": 0.20389
+                    "p5": -0.2338,
+                    "p10": -0.19534,
+                    "p25": -0.12612,
+                    "p75": 0.05145,
+                    "p90": 0.14388,
+                    "p95": 0.20316
                 }
             }
         },
@@ -3062,18 +3062,18 @@
                 101.24,
                 100.75,
                 101.2,
-                101.64
+                100.39
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.05191,
+                "mediana": -0.05288,
                 "quantis": {
-                    "p5": -0.25477,
-                    "p10": -0.21446,
-                    "p25": -0.1415,
-                    "p75": 0.04782,
-                    "p90": 0.14745,
-                    "p95": 0.2117
+                    "p5": -0.25569,
+                    "p10": -0.21539,
+                    "p25": -0.14245,
+                    "p75": 0.04684,
+                    "p90": 0.14647,
+                    "p95": 0.21072
                 }
             }
         }
