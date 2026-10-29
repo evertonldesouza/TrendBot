@@ -301,76 +301,37 @@ function renderRecomendacao(rec, data) {
     bloco.hidden = false;
 }
 
-function fmtPreco(n) {
-    const v = Number(n) || 0;
-    if (v >= 1000) return (v / 1000).toFixed(1).replace('.', ',') + 'k';
-    if (v >= 1)    return v.toFixed(0);
-    return v.toFixed(3);
-}
-
 function graficoLeque(simbolo) {
-    /* Historico + leque de projecao em SVG.
-       Era um PNG de ~150 KB gerado e cometido todo dia por ativo. Mesma
-       informacao, agora derivada do data.json: texto, comprime no git e nao
-       precisa de round-trip no servidor. */
+    /* O desenho e do nucleo compartilhado (docs/comum.js), o mesmo que o
+       painel da API usa. Aqui so se adaptam os dados publicados em data.json
+       para o formato que o nucleo espera. */
     const g = estadoGraficos[simbolo];
     if (!g || !Array.isArray(g.fechamento) || g.fechamento.length < 2) return '';
 
-    const hist = g.fechamento.map(Number).filter(function (v) { return isFinite(v); });
-    if (hist.length < 2) return '';
-
     const proj = g.projecao;
-    const ultimo = hist[hist.length - 1];
-    const horizonte = proj ? (Number(proj.horizonte) || 30) : 0;
-    const mediana = proj ? Number(proj.mediana) : null;
-    const q = proj ? proj.quantis : null;
+    const horizonte = proj ? (Number(proj.horizonte) || 30) : 30;
+    const faixas = [];
 
-    const W = 360, H = 132, L = 6, R = 44, T = 8, B = 16;
-    const iw = W - L - R, ih = H - T - B;
-
-    let lo = Math.min.apply(null, hist), hi = Math.max.apply(null, hist);
-    if (q) {
-        lo = Math.min(lo, ultimo * (1 + Number(q.p5)));
-        hi = Math.max(hi, ultimo * (1 + Number(q.p95)));
-    }
-    if (hi - lo < 1e-9) hi = lo + 1;
-    const margem = (hi - lo) * 0.06;
-    lo -= margem; hi += margem;
-
-    const xMax = (hist.length - 1) + horizonte;
-    const px = function (i) { return L + (i / xMax) * iw; };
-    const py = function (v) { return T + (1 - (v - lo) / (hi - lo)) * ih; };
-
-    const p = [];
-    p.push('<svg class="leque" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img"');
-    p.push(' aria-label="Historico de 12 meses e leque de projecao de ' + horizonte + ' dias para ' + simbolo + '">');
-
-    if (q) {
-        // triangulos: cada faixa sai do ultimo preco e abre ate o quantil
+    if (proj && proj.quantis) {
+        // da mais larga para a mais estreita, como o nucleo espera
         [['p5', 'p95', 0.10], ['p10', 'p90', 0.14], ['p25', 'p75', 0.20]].forEach(function (f) {
-            const a = ultimo * (1 + Number(q[f[0]]));
-            const b = ultimo * (1 + Number(q[f[1]]));
-            p.push('<polygon class="leque-faixa" opacity="' + f[2] + '" points="' +
-                px(hist.length - 1).toFixed(1) + ',' + py(ultimo).toFixed(1) + ' ' +
-                px(xMax).toFixed(1) + ',' + py(b).toFixed(1) + ' ' +
-                px(xMax).toFixed(1) + ',' + py(a).toFixed(1) + '"/>');
+            const inferior = Number(proj.quantis[f[0]]);
+            const superior = Number(proj.quantis[f[1]]);
+            if (isFinite(inferior) && isFinite(superior)) {
+                faixas.push({ inferior: inferior, superior: superior, opacidade: f[2] });
+            }
         });
     }
 
-    p.push('<polyline class="leque-preco" points="' +
-        hist.map(function (v, i) { return px(i).toFixed(1) + ',' + py(v).toFixed(1); }).join(' ') + '"/>');
-
-    if (mediana !== null && isFinite(mediana)) {
-        const fim = ultimo * (1 + mediana);
-        const x0 = px(hist.length - 1).toFixed(1), y0 = py(ultimo).toFixed(1);
-        const x1 = px(xMax).toFixed(1), y1 = py(fim).toFixed(1);
-        p.push('<line class="leque-mediana" x1="' + x0 + '" y1="' + y0 + '" x2="' + x1 + '" y2="' + y1 + '"/>');
-        p.push('<circle class="leque-fim" cx="' + x1 + '" cy="' + y1 + '" r="2.6"/>');
-        p.push('<text class="leque-valor" x="' + (px(xMax) + 4).toFixed(1) + '" y="' +
-               (py(fim) + 3).toFixed(1) + '">' + fmtPreco(fim) + '</text>');
-    }
-    p.push('</svg>');
-    return p.join('');
+    return TB.leque({
+        precos: g.fechamento,
+        mediana: proj ? Number(proj.mediana) : null,
+        faixas: faixas,
+        horizonte: horizonte,
+        altura: 132,
+        rotulo: 'Historico de 12 meses e leque de projecao de ' +
+                horizonte + ' dias para ' + simbolo,
+    });
 }
 
 function renderCards(data, historico) {
@@ -460,40 +421,11 @@ function renderCards(data, historico) {
  * o mesmo ativo duas vezes e — pior — a precisão por moeda dos cards fica
  * zerada, porque data.json usa "BTC" e o histórico antigo usa "BITCOIN".
  * ------------------------------------------------------------------------- */
-const MOEDAS_CANONICAS = {
-    BTC: { nome: 'Bitcoin',  aliases: ['BTC', 'BITCOIN'] },
-    ETH: { nome: 'Ethereum', aliases: ['ETH', 'ETHEREUM'] },
-    SOL: { nome: 'Solana',   aliases: ['SOL', 'SOLANA'] },
-    ADA: { nome: 'Cardano',  aliases: ['ADA', 'CARDANO'] },
-};
-
-const _ALIAS_PARA_CANONICA = (() => {
-    const mapa = {};
-    for (const canonica of Object.keys(MOEDAS_CANONICAS)) {
-        for (const apelido of MOEDAS_CANONICAS[canonica].aliases) {
-            mapa[apelido] = canonica;
-        }
-    }
-    return mapa;
-})();
-
-function moedaCanonica(moeda) {
-    const chave = String(moeda === null || moeda === undefined ? '' : moeda).trim().toUpperCase();
-    return _ALIAS_PARA_CANONICA[chave] || chave;
-}
-
-function nomeMoeda(moeda) {
-    const canonica = moedaCanonica(moeda);
-    return MOEDAS_CANONICAS[canonica]
-        ? MOEDAS_CANONICAS[canonica].nome
-        : canonica.charAt(0) + canonica.slice(1).toLowerCase();
-}
-
-let historicoGlobal = [];
-
-// series e leques vindos do data.json (texto). Substituem os PNGs diarios,
-// que eram 98,6% do tamanho do repositorio.
-let estadoGraficos = {};
+/* Nomes canonicos vem do nucleo compartilhado (docs/comum.js), o mesmo que o
+   painel da API usa. Duas copias desta tabela divergem sem avisar: e assim
+   que um painel passa a aceitar "CARDANO" e o outro nao. */
+const moedaCanonica = (moeda) => TB.moedaCanonica(moeda);
+const nomeMoeda = (moeda) => TB.nomeMoeda(moeda);
 
 const estadoHistorico = {
     moeda: 'TODOS',

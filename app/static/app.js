@@ -17,9 +17,10 @@ const state = {
   perfis: [],
 };
 
-const CORES = ["#58a6ff", "#a78bfa", "#2dd4bf", "#e3b341", "#3fb950",
-  "#f778ba", "#79c0ff", "#d29922", "#f85149", "#7ee787"];
-const COR_CAIXA = "#4d5563";
+/* Paleta e formatação vêm do núcleo compartilhado (docs/comum.js), o mesmo
+   que o painel público usa. Duas cópias destas tabelas divergem sem avisar. */
+const CORES = TB.CORES;
+const COR_CAIXA = TB.COR_CAIXA;
 
 /* ---------------------------------------------------------------- utils */
 const $ = (sel) => document.querySelector(sel);
@@ -29,17 +30,11 @@ const el = (tag, cls, txt) => {
   if (txt !== undefined) n.textContent = txt;
   return n;
 };
-const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
-const pctSigned = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
-const money = (v) => (v < 0 ? "-US$ " : "US$ ") +
-  Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-const price = (v) => {
-  if (v >= 1000) return `US$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
-  if (v >= 10) return `US$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}`;
-  if (v >= 1) return `US$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 3 })}`;
-  return `US$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 5 })}`;
-};
-const corDe = (sym, i) => (sym === "USD" ? COR_CAIXA : CORES[i % CORES.length]);
+const pct = TB.pct;          // pt-BR: vírgula decimal
+const pctSigned = TB.pctComSinal;  // já inclui o "+" quando positivo
+const money = TB.money;
+const price = TB.price;
+const corDe = TB.corDe;
 
 /* ------------------------------------------------------------ bootstrap */
 async function init() {
@@ -437,7 +432,7 @@ function renderRisco(d) {
     const row = el("div", "stress-row");
     row.appendChild(el("div", null, s.label));
     const v = el("div", "sv " + (s.impacto_base < 0 ? "down" : "up"),
-      `${s.impacto_base >= 0 ? "+" : ""}${pctSigned(s.impacto_base, 0)}`);
+      `${pctSigned(s.impacto_base, 0)}`);
     v.title = `Pior caso a 95% dentro do cenário: ${pctSigned(s.impacto_estresse_95, 0)}`;
     row.appendChild(v);
     st.appendChild(row);
@@ -472,10 +467,10 @@ function renderAtivos() {
       b.appendChild(el("div", "qv " + (cls || ""), v));
       qg.appendChild(b);
     };
-    qbox(`${hz}d mediana`, `${h.median_return >= 0 ? "+" : ""}${pctSigned(h.median_return, 1)}`,
+    qbox(`${hz}d mediana`, `${pctSigned(h.median_return, 1)}`,
       h.median_return >= 0 ? "up" : "down");
     qbox("p05", pctSigned(h.lower, 0), "down");
-    qbox("p95", `+${pctSigned(h.upper, 0)}`, "up");
+    qbox("p95", `${pctSigned(h.upper, 0)}`, "up");
     qbox("prob. alta", pct(h.prob_up, 0), h.prob_up > 0.55 ? "up" : "flat");
     card.appendChild(qg);
 
@@ -496,38 +491,27 @@ function renderAtivos() {
 }
 
 function fanSVG(serie, h, precoAtual) {
+  /* O desenho e do nucleo compartilhado (docs/comum.js), o mesmo que o painel
+     publico usa. Aqui so se adaptam os dados do /api/relatorio para o formato
+     que o nucleo espera. */
   if (!serie.prices || !serie.prices.length) return "";
-  const W = 340, H = 120, pad = 6;
-  const prices = serie.prices;
-  const n = prices.length;
-  const lo = Math.min(...prices, precoAtual * (1 + h.lower));
-  const hi = Math.max(...prices, precoAtual * (1 + h.upper));
-  const span = hi - lo || 1;
-  const x = (i) => pad + (i / Math.max(1, n - 1)) * (W - pad * 2);
-  const y = (v) => H - pad - ((v - lo) / span) * (H - pad * 2);
 
-  const hist = prices.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p).toFixed(1)}`).join(" ");
-  const fut = n - 1 + 26;
-  const fan = (a, b, fill, op) => {
-    const y1 = y(precoAtual * (1 + a));
-    const y2 = y(precoAtual * (1 + b));
-    return `<path d="M${x(n - 1).toFixed(1)},${y(precoAtual).toFixed(1)}
-      L${x(fut).toFixed(1)},${y1.toFixed(1)} L${x(fut).toFixed(1)},${y2.toFixed(1)} Z"
-      fill="${fill}" opacity="${op}"/>`;
-  };
+  const iv = h.intervals || {};
+  const faixas = [
+    { inferior: iv.p05, superior: iv.p95, opacidade: 0.13 },
+    { inferior: iv.p10, superior: iv.p90, opacidade: 0.18 },
+    { inferior: iv.p25, superior: iv.p75, opacidade: 0.26 },
+  ].filter((f) => isFinite(Number(f.inferior)) && isFinite(Number(f.superior)));
 
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
-    <rect x="0" y="0" width="${W}" height="${H}" fill="#131923" rx="8"/>
-    ${fan(h.intervals.p95, h.intervals.p05, "#a78bfa", 0.13)}
-    ${fan(h.intervals.p90, h.intervals.p10, "#a78bfa", 0.18)}
-    ${fan(h.intervals.p75, h.intervals.p25, "#a78bfa", 0.26)}
-    <path d="${hist}" fill="none" stroke="#58a6ff" stroke-width="1.6" stroke-linejoin="round"/>
-    <line x1="${x(n - 1).toFixed(1)}" y1="${y(precoAtual).toFixed(1)}"
-      x2="${x(fut).toFixed(1)}" y2="${y(precoAtual * (1 + h.median_return)).toFixed(1)}"
-      stroke="#a78bfa" stroke-width="2" stroke-dasharray="4 3"/>
-    <circle cx="${x(fut).toFixed(1)}" cy="${y(precoAtual * (1 + h.median_return)).toFixed(1)}"
-      r="3.2" fill="#a78bfa"/>
-  </svg>`;
+  const horizonte = 26;
+  return TB.leque({
+    precos: serie.prices,
+    mediana: Number(h.median_return),
+    faixas: faixas,
+    horizonte: horizonte,
+    altura: 120,
+    rotulo: "Historico e projecao de " + horizonte + " dias",
+  });
 }
 
 /* -------------------------------------------------------------- modelo */

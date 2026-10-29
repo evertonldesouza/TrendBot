@@ -112,6 +112,12 @@ window.fetch = (url) => {
 const erroConsole = [];
 window.addEventListener('error', (e) => erroConsole.push(e.message));
 
+// comum.js primeiro: script.js depende de TB. O check carrega os dois na
+// mesma ordem do index.html — se a ordem do HTML quebrar, isto aqui pega.
+const nucleo = window.document.createElement('script');
+nucleo.textContent = ler('docs/comum.js');
+window.document.body.appendChild(nucleo);
+
 const tag = window.document.createElement('script');
 tag.textContent = js;
 window.document.body.appendChild(tag);
@@ -165,5 +171,83 @@ if (!veredito || !veredito.textContent.trim()) {
 
 if (erroConsole.length) falhar(`erro de JS em runtime: ${erroConsole.join('; ')}`);
 
-console.log(falhas === 0 ? '\nOK: painel íntegro' : `\n${falhas} falha(s)`);
+/* -- 4. painel interativo (app/static) ----------------------------------- */
+/* O mesmo núcleo, outra página. Ficou de fora da checagem por muito tempo e
+   foi assim que os dois divergiram: consertar num não chegava no outro. */
+console.log('\npainel interativo (app/static)');
+
+const jsApi = ler('app/static/app.js');
+try {
+    new vm.Script(jsApi, { filename: 'app/static/app.js' });
+    ok('app/static/app.js compila');
+} catch (e) {
+    falhar(`app/static/app.js não compila: ${e.message}`);
+    process.exit(1);
+}
+
+const orfasApi = [...jsApi.matchAll(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm)]
+    .map((m) => m[1])
+    .filter((nome) => {
+        const corpo = `${jsApi}\n${ler('app/static/index.html')}`;
+        const usos = (corpo.match(new RegExp(`(^|[^\\w$])${escapa(nome)}(?![\\w$])`, 'g')) || []).length;
+        return usos < 2;
+    });
+if (orfasApi.length) {
+    orfasApi.forEach((n) => falhar(`function ${n}() (painel interativo) nunca é chamada`));
+} else {
+    ok('nenhuma função órfã');
+}
+
+const opcoes = JSON.parse(ler('tests/painel/opcoes.fixture.json'));
+const relatorio = JSON.parse(ler('tests/painel/relatorio.fixture.json'));
+
+const dom2 = new JSDOM(ler('app/static/index.html'), {
+    runScripts: 'dangerously', url: 'https://trendbot.test/',
+});
+const w2 = dom2.window;
+w2.fetch = (url) => {
+    const u = String(url);
+    if (u.startsWith('/api/opcoes')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(opcoes) });
+    }
+    if (u.startsWith('/api/relatorio')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(relatorio) });
+    }
+    return Promise.resolve({ ok: false, status: 404, json: () => Promise.reject(new Error('404')) });
+};
+const erros2 = [];
+w2.addEventListener('error', (e) => erros2.push(e.message));
+
+function injeta2(codigo) {
+    const t = w2.document.createElement('script');
+    t.textContent = codigo;
+    w2.document.body.appendChild(t);
+}
+
+// mesma ordem do index.html: núcleo antes de app.js
+injeta2(ler('docs/comum.js'));
+injeta2(jsApi);
+await w2.eval('init()');
+
+const doc2 = w2.document;
+const erro2 = doc2.getElementById('error');
+if (erro2 && !erro2.hidden) falhar(`painel interativo mostrou erro: ${erro2.textContent.trim()}`);
+
+const cardsApi = doc2.querySelectorAll('.asset-card');
+if (!cardsApi.length) {
+    falhar('painel interativo não renderizou nenhum card de ativo');
+} else {
+    ok(`${cardsApi.length} cards de ativo renderizados`);
+}
+
+const lequesApi = doc2.querySelectorAll('.asset-card svg.leque polyline.leque-preco');
+if (lequesApi.length !== cardsApi.length) {
+    falhar(`${lequesApi.length} leques de ${cardsApi.length} cards (núcleo compartilhado)`);
+} else {
+    ok(`${lequesApi.length} leques desenhados pelo núcleo compartilhado`);
+}
+
+if (erros2.length) falhar(`erro de JS no painel interativo: ${erros2.join('; ')}`);
+
+console.log(falhas === 0 ? '\nOK: os dois painéis íntegros' : `\n${falhas} falha(s)`);
 process.exit(falhas === 0 ? 0 : 1);

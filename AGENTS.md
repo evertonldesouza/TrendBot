@@ -56,17 +56,27 @@ python trendbot_engine.py
 | `app/main.py` | API FastAPI |
 | `app/static/` | painel interativo servido pela API (`app.js`, `styles.css`) |
 | `docs/` | painel público do GitHub Pages (`script.js`, `style.css`, `data.json`) |
+| `docs/comum.js` | núcleo compartilhado pelos dois painéis (servido em `/comum`) |
 | `tests/painel/check.mjs` | checagem do painel público com jsdom |
 | `trendbot_engine.py` | compatibilidade com o pipeline v1 (Actions/Pages) |
 
-### Atenção: são dois painéis
+### Atenção: são dois painéis, um núcleo
 
-`app/static/` e `docs/` são implementações **independentes** da mesma ideia e
-não compartilham código. Nada os mantém em sincronia senão quem mexe. Uma
-correção aplicada em um não chega no outro — vale conferir os dois.
+Existem duas páginas, servidas de formas diferentes:
 
-O `docs/` é servido direto do branch, sem build: é o que o público vê. O CI
-roda `tests/painel/check.mjs` sobre ele em todo PR.
+| | `docs/` | `app/static/` |
+|---|---|---|
+| Servido por | GitHub Pages (branch, sem build) | FastAPI (`/`, `/static`) |
+| Dados | `data.json` / `historico.json` prontos | `/api/relatorio` sob demanda |
+| Uso | público, sempre no ar | interativo (perfil, capital, carteira) |
+
+O que é **compartilhado** está em `docs/comum.js`: catálogo de moedas,
+formatação, paleta e o leque de projeção. O arquivo mora em `docs/` porque o
+Pages não tem build — e a API serve esse mesmo arquivo em `/comum`, sem cópia.
+
+Cada página ainda tem seu HTML e seu script próprios, então **uma correção de
+layout num não chega no outro**. O que não diverge mais é o núcleo. O CI roda
+`tests/painel/check.mjs`, que valida os dois em todo PR.
 
 ## Regras de ouro do projeto
 
