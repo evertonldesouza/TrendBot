@@ -2201,9 +2201,9 @@
         "previsao": 0.18,
         "confianca_min": 0.17,
         "confianca_max": 0.18,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null,
+        "preco_real": 0.17,
+        "erro": -0.01,
+        "acerto": "✅",
         "fonte": "coingecko",
         "calibracao": 0.9676
     },
@@ -2213,9 +2213,9 @@
         "previsao": 74461.04,
         "confianca_min": 72908.35,
         "confianca_max": 76549.39,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null,
+        "preco_real": 71421.17,
+        "erro": -3039.87,
+        "acerto": "❌",
         "fonte": "coingecko",
         "calibracao": 0.9676
     },
@@ -2225,9 +2225,9 @@
         "previsao": 2079.38,
         "confianca_min": 2005.65,
         "confianca_max": 2179.11,
-        "preco_real": null,
-        "erro": null,
-        "acerto": null,
+        "preco_real": 2015.74,
+        "erro": -63.64,
+        "acerto": "✅",
         "fonte": "coingecko",
         "calibracao": 0.9676
     },
@@ -2237,10 +2237,58 @@
         "previsao": 84.83,
         "confianca_min": 80.74,
         "confianca_max": 89.37,
+        "preco_real": 81.44,
+        "erro": -3.39,
+        "acerto": "✅",
+        "fonte": "coingecko",
+        "calibracao": 0.9676
+    },
+    {
+        "data": "12/11/2026",
+        "moeda": "ADA",
+        "previsao": 0.17,
+        "confianca_min": 0.16,
+        "confianca_max": 0.19,
         "preco_real": null,
         "erro": null,
         "acerto": null,
         "fonte": "coingecko",
-        "calibracao": 0.9676
+        "calibracao": 1.0
+    },
+    {
+        "data": "12/11/2026",
+        "moeda": "BTC",
+        "previsao": 71370.05,
+        "confianca_min": 69125.09,
+        "confianca_max": 75939.99,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null,
+        "fonte": "coingecko",
+        "calibracao": 1.0
+    },
+    {
+        "data": "12/11/2026",
+        "moeda": "ETH",
+        "previsao": 2013.54,
+        "confianca_min": 1916.61,
+        "confianca_max": 2133.64,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null,
+        "fonte": "coingecko",
+        "calibracao": 1.0
+    },
+    {
+        "data": "12/11/2026",
+        "moeda": "SOL",
+        "previsao": 81.43,
+        "confianca_min": 77.04,
+        "confianca_max": 88.81,
+        "preco_real": null,
+        "erro": null,
+        "acerto": null,
+        "fonte": "coingecko",
+        "calibracao": 1.0
     }
 ]
