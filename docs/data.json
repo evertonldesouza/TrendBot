@@ -1,5 +1,5 @@
 {
-    "ultima_atualizacao": "13/11/2026 20:23",
+    "ultima_atualizacao": "14/11/2026 18:40",
     "fonte": {
         "detalhes": [],
         "id": "coingecko",
@@ -9,32 +9,32 @@
     },
     "modelo": {
         "n_assets": 4,
-        "avg_skill": -0.034989611782477156,
-        "avg_hit_rate": 0.49230769230769234,
-        "avg_coverage": 0.7999999999999999,
+        "avg_skill": -0.020188416391125924,
+        "avg_hit_rate": 0.5211538461538462,
+        "avg_coverage": 0.525,
         "observations": 28,
         "verdict": "Modelo neutro: não supera o benchmark ingênuo de forma consistente.",
         "notes": [
             "Nesse cenário o TrendBot reduz automaticamente o peso do modelo e prioriza risco e alocação.",
             "A validação rodou com apenas 28 pontos fora da amostra: a estimativa de habilidade é ruidosa, e o peso do modelo já vem descontado por isso.",
-            "Intervalos de 90% cobriram 80% dos resultados reais — subestimação de cauda. Trate o risco como maior que o reportado."
+            "Intervalos de 90% cobriram 52% dos resultados reais — subestimação de cauda. Trate o risco como maior que o reportado."
         ]
     },
     "calibracao": {
         "alvo_cobertura": 0.9,
-        "fator": 0.9968,
-        "amostra": 212,
+        "fator": 1.0119,
+        "amostra": 216,
         "minimo_amostra": 40,
         "ajustado": true
     },
     "ativos": [
         {
             "moeda": "ADA",
-            "preco": "0.17",
-            "previsao": "0.17",
-            "confianca_min": "0.16",
-            "confianca_max": "0.18",
-            "variacao": "-0.10",
+            "preco": "0.16",
+            "previsao": "0.16",
+            "confianca_min": "0.14",
+            "confianca_max": "0.16",
+            "variacao": "-0.21",
             "status": "NEUTRO",
             "emoji": "⚖️",
             "grafico": "ADA",
@@ -44,27 +44,27 @@
         },
         {
             "moeda": "BTC",
-            "preco": "69,021.38",
-            "previsao": "69,045.64",
-            "confianca_min": "66,918.40",
-            "confianca_max": "70,709.46",
-            "variacao": "+0.04",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "65,914.18",
+            "previsao": "65,877.23",
+            "confianca_min": "63,679.47",
+            "confianca_max": "67,865.60",
+            "variacao": "-0.06",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "grafico": "BTC",
-            "conviccao": -0.059,
+            "conviccao": -0.057,
             "regime": "neutro",
             "peso_modelo": 0.0
         },
         {
             "moeda": "ETH",
-            "preco": "1,953.61",
-            "previsao": "1,956.52",
-            "confianca_min": "1,871.36",
-            "confianca_max": "1,999.43",
-            "variacao": "+0.15",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "1,840.71",
+            "previsao": "1,838.82",
+            "confianca_min": "1,758.90",
+            "confianca_max": "1,932.57",
+            "variacao": "-0.10",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "grafico": "ETH",
             "conviccao": -0.063,
             "regime": "neutro",
@@ -72,15 +72,15 @@
         },
         {
             "moeda": "SOL",
-            "preco": "80.35",
-            "previsao": "80.46",
-            "confianca_min": "77.63",
-            "confianca_max": "83.21",
-            "variacao": "+0.14",
-            "status": "ALTA LEVE",
-            "emoji": "⬆️",
+            "preco": "72.69",
+            "previsao": "72.48",
+            "confianca_min": "67.95",
+            "confianca_max": "76.65",
+            "variacao": "-0.28",
+            "status": "NEUTRO",
+            "emoji": "⚖️",
             "grafico": "SOL",
-            "conviccao": -0.069,
+            "conviccao": -0.072,
             "regime": "neutro",
             "peso_modelo": 0.01
         }
@@ -88,7 +88,6 @@
     "graficos": {
         "ADA": {
             "datas": [
-                "2025-11-14",
                 "2025-11-15",
                 "2025-11-16",
                 "2025-11-17",
@@ -452,10 +451,10 @@
                 "2026-11-10",
                 "2026-11-11",
                 "2026-11-12",
-                "2026-11-13"
+                "2026-11-13",
+                "2026-11-14"
             ],
             "fechamento": [
-                0.53,
                 0.5,
                 0.5,
                 0.48,
@@ -819,24 +818,24 @@
                 0.18,
                 0.17,
                 0.17,
-                0.17
+                0.17,
+                0.16
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.0886,
+                "mediana": -0.09139,
                 "quantis": {
-                    "p5": -0.36181,
-                    "p10": -0.30963,
-                    "p25": -0.21246,
-                    "p75": 0.0548,
-                    "p90": 0.20349,
-                    "p95": 0.3021
+                    "p5": -0.37732,
+                    "p10": -0.32304,
+                    "p25": -0.22153,
+                    "p75": 0.06021,
+                    "p90": 0.21829,
+                    "p95": 0.32359
                 }
             }
         },
         "BTC": {
             "datas": [
-                "2025-11-14",
                 "2025-11-15",
                 "2025-11-16",
                 "2025-11-17",
@@ -1200,10 +1199,10 @@
                 "2026-11-10",
                 "2026-11-11",
                 "2026-11-12",
-                "2026-11-13"
+                "2026-11-13",
+                "2026-11-14"
             ],
             "fechamento": [
-                99480.31,
                 94772.61,
                 95380.13,
                 94188.28,
@@ -1567,24 +1566,24 @@
                 75266.77,
                 73721.18,
                 73974.39,
-                69021.38
+                71371.98,
+                65914.18
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.02968,
+                "mediana": -0.02948,
                 "quantis": {
-                    "p5": -0.20972,
-                    "p10": -0.17312,
-                    "p25": -0.10796,
-                    "p75": 0.05549,
-                    "p90": 0.13874,
-                    "p95": 0.19155
+                    "p5": -0.21731,
+                    "p10": -0.17922,
+                    "p25": -0.11129,
+                    "p75": 0.05975,
+                    "p90": 0.14719,
+                    "p95": 0.20275
                 }
             }
         },
         "ETH": {
             "datas": [
-                "2025-11-14",
                 "2025-11-15",
                 "2025-11-16",
                 "2025-11-17",
@@ -1948,10 +1947,10 @@
                 "2026-11-10",
                 "2026-11-11",
                 "2026-11-12",
-                "2026-11-13"
+                "2026-11-13",
+                "2026-11-14"
             ],
             "fechamento": [
-                3223.18,
                 3118.71,
                 3169.7,
                 3091.91,
@@ -2315,24 +2314,24 @@
                 2132.14,
                 2050.34,
                 2055.37,
-                1953.61
+                2017.35,
+                1840.71
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.04043,
+                "mediana": -0.04253,
                 "quantis": {
-                    "p5": -0.26985,
-                    "p10": -0.22449,
-                    "p25": -0.14209,
-                    "p75": 0.07333,
-                    "p90": 0.1875,
-                    "p95": 0.26139
+                    "p5": -0.28233,
+                    "p10": -0.23511,
+                    "p25": -0.14908,
+                    "p75": 0.0772,
+                    "p90": 0.19784,
+                    "p95": 0.27614
                 }
             }
         },
         "SOL": {
             "datas": [
-                "2025-11-14",
                 "2025-11-15",
                 "2025-11-16",
                 "2025-11-17",
@@ -2696,10 +2695,10 @@
                 "2026-11-10",
                 "2026-11-11",
                 "2026-11-12",
-                "2026-11-13"
+                "2026-11-13",
+                "2026-11-14"
             ],
             "fechamento": [
-                144.6,
                 138.99,
                 139.27,
                 137.14,
@@ -3063,18 +3062,19 @@
                 86.6,
                 83.27,
                 83.24,
-                80.35
+                81.64,
+                72.69
             ],
             "projecao": {
                 "horizonte": 30,
-                "mediana": -0.04728,
+                "mediana": -0.05202,
                 "quantis": {
-                    "p5": -0.28276,
-                    "p10": -0.23641,
-                    "p25": -0.15193,
-                    "p75": 0.07034,
-                    "p90": 0.18889,
-                    "p95": 0.26585
+                    "p5": -0.30388,
+                    "p10": -0.2547,
+                    "p25": -0.16456,
+                    "p75": 0.07547,
+                    "p90": 0.20495,
+                    "p95": 0.2895
                 }
             }
         }
