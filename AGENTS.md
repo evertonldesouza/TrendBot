@@ -15,7 +15,7 @@ Nomes de código, docstrings e logs: português também (o projeto é todo em pt
 ## Comandos
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # relatório completo no terminal + JSON + PNGs em out/
 python -m trendbot.cli --perfil moderado --capital 25000 --aporte 1000 \
@@ -27,7 +27,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 # testes Python (rodam offline)
 pytest tests/ -v
 
-# checagem do painel público (docs/): sintaxe, função morta, renderização
+# checagem dos dois painéis: sintaxe, função morta, renderização
 npm ci
 node tests/painel/check.mjs
 
@@ -57,7 +57,7 @@ python trendbot_engine.py
 | `app/static/` | painel interativo servido pela API (`app.js`, `styles.css`) |
 | `docs/` | painel público do GitHub Pages (`script.js`, `style.css`, `data.json`) |
 | `docs/comum.js` | núcleo compartilhado pelos dois painéis (servido em `/comum`) |
-| `tests/painel/check.mjs` | checagem do painel público com jsdom |
+| `tests/painel/check.mjs` | checagem dos dois painéis com jsdom |
 | `trendbot_engine.py` | compatibilidade com o pipeline v1 (Actions/Pages) |
 
 ### Atenção: são dois painéis, um núcleo
@@ -98,13 +98,25 @@ layout num não chega no outro**. O que não diverge mais é o núcleo. O CI rod
 
 ## Ao alterar o núcleo quantitativo
 
-- rode `pytest tests/ -v` (156 testes, ~20s, offline, 91% de cobertura);
-- rode `node tests/painel/check.mjs` se mexeu em `docs/`;
+- rode `pytest tests/ -v` (offline);
+- rode `node tests/painel/check.mjs` se mexeu em qualquer painel ou no núcleo compartilhado;
 - verifique se os quatro perfis continuam batendo o alvo de volatilidade
   (`test_carteira_recomendada_bate_o_alvo_de_volatilidade`);
 - verifique se a cobertura dos intervalos continua entre 70% e 100%;
 - **verifique o teste por mutação**: reverta a correção e confirme que o teste
   falha. Teste que passa com o defeito de volta não está segurando nada.
+
+## Em toda melhoria
+
+- Atualize `readme.md` para mudanças de instalação, configuração, contrato,
+  arquitetura ou operação e registre mudanças relevantes em `CHANGELOG.md`.
+- Crie ou ajuste testes de regressão; verifique por mutação quando viável e
+  relate qualquer verificação não executada.
+- Revise segurança, privacidade, dependências e compatibilidade do pipeline
+  legado; siga `SECURITY.md` e o modelo de PR. A API não possui autenticação,
+  TLS ou rate limiting — não apresente essas proteções como implementadas.
+- Preserve a política de CI: auditoria bloqueia o check em PR, mas não a
+  publicação diária; testes Python continuam condicionando a publicação.
 
 ## Fora do escopo
 

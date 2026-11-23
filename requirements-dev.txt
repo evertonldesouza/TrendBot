@@ -1,0 +1,5 @@
+# Dependências para desenvolvimento e CI; não entram na imagem da aplicação.
+-r requirements.txt
+pytest>=9.0.3,<10
+httpx>=0.27,<1
+coverage>=7,<8

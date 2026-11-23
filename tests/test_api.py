@@ -113,3 +113,99 @@ def test_index_entrega_o_html_do_painel(cliente):
 def test_arquivos_estaticos_sao_servidos(cliente):
     r = cliente.get("/static/app.js")
     assert r.status_code == 200
+
+
+@pytest.mark.parametrize("metodo,entrada", [
+    ("get", {"dias": -5}),
+    ("get", {"dias": 100_000_000}),
+    ("get", {"ativos": ",".join(["bitcoin"] * 33)}),
+    ("get", {"capital": "inf"}),
+    ("post", {"dias": 199}),
+    ("post", {"dias": 3001}),
+    ("post", {"ativos": ["bitcoin"] * 33}),
+    ("post", {"ativos": ["a" * 65]}),
+    ("post", {"carteira": {"posicoes": {"BTC": -10}}}),
+    ("post", {"carteira": {"posicoes": {str(i): 1 for i in range(33)}}}),
+])
+def test_relatorio_rejeita_entradas_fora_dos_limites_sem_calcular(monkeypatch, metodo, entrada):
+    """GET e POST validam antes de acionar o pipeline de previsão."""
+    def nao_calcular(_):
+        pytest.fail("entrada inválida chegou ao cálculo")
+
+    monkeypatch.setattr(api, "_montar_relatorio", nao_calcular)
+    c = TestClient(api.app)  # sem lifespan: não dispara o aquecimento
+    if metodo == "get":
+        resposta = c.get("/api/relatorio", params=entrada)
+    else:
+        resposta = c.post("/api/relatorio", json=entrada)
+    assert resposta.status_code == 422
+    assert resposta.json()["detail"] == "Parâmetros inválidos."
+
+
+def test_relatorio_nao_expoe_erros_internos(monkeypatch):
+    def falhar(_):
+        raise RuntimeError("segredo interno não pode aparecer")
+
+    monkeypatch.setattr(api, "_montar_relatorio", falhar)
+    api._CACHE.clear()
+    c = TestClient(api.app)
+    r = c.post("/api/relatorio", json={"dias": 400})
+    assert r.status_code == 500
+    assert r.json()["detail"] == "Falha interna ao gerar relatório."
+    assert "segredo interno" not in r.text
+
+
+def test_relatorio_nao_expoe_valueerror_interno(monkeypatch):
+    def falhar(_):
+        raise ValueError("detalhe interno não pode aparecer")
+
+    monkeypatch.setattr(api, "_montar_relatorio", falhar)
+    api._CACHE.clear()
+    r = TestClient(api.app).post("/api/relatorio", json={"dias": 400})
+    assert r.status_code == 400
+    assert "detalhe interno" not in r.text
+
+
+def test_nucleo_compartilhado_e_unico_arquivo_exposto_em_comum():
+    c = TestClient(api.app)
+    js = c.get("/comum/comum.js")
+    assert js.status_code == 200
+    assert "global.TB" in js.text
+    assert c.get("/comum/index.html").status_code == 404
+    assert c.get("/comum/data.json").status_code == 404
+
+
+@pytest.mark.parametrize("valor", ["NaN", "Infinity", "-Infinity"])
+def test_post_nao_aceita_valores_financeiros_nao_finitos(valor):
+    resposta = TestClient(api.app).post(
+        "/api/relatorio", content='{"carteira":{"capital":' + valor + '}}',
+        headers={"content-type": "application/json"},
+    )
+    assert resposta.status_code == 422
+    assert resposta.json()["detail"] == "Parâmetros inválidos."
+
+
+def test_health_nao_expoe_erro_do_aquecimento(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+
+    def falhar(_):
+        raise RuntimeError("informação interna")
+
+    class ThreadImediata:
+        def __init__(self, target, **_):
+            self.target = target
+
+        def start(self):
+            self.target()
+
+    monkeypatch.setattr(api, "threading", SimpleNamespace(Thread=ThreadImediata))
+    monkeypatch.setattr(api, "_montar_relatorio", falhar)
+    monkeypatch.setattr(api, "_WARMUP", {"status": "pendente", "erro": None})
+
+    async def executar():
+        async with api.lifespan(api.app):
+            assert api.health()["aquecimento"]["erro"] == "Falha no aquecimento."
+            assert "informação interna" not in str(api.health())
+
+    asyncio.run(executar())
