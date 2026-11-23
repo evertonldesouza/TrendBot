@@ -2,12 +2,12 @@
 
 > **De "previsor de preço" para "gestor de risco".**
 > O TrendBot não tenta adivinhar o preço de amanhã. Ele dimensiona risco,
-> limita concentração, mantém colchão de caixa e **prova o que afirma** com
+> limita concentração, mantém colchão de caixa e **avalia suas hipóteses** com
 > validação fora da amostra e backtest com custos.
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688)](https://fastapi.tiangolo.com/)
-[![Testes](https://img.shields.io/badge/testes-39%20passando-brightgreen)](#testes)
+[![Testes](https://img.shields.io/badge/testes-automatizados-blue)](#testes)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-green)](LICENSE)
 
 ---
@@ -26,7 +26,9 @@
 - [Fontes de dados](#fontes-de-dados)
 - [API](#api)
 - [Instalação](#instalação)
+- [Segurança](#segurança)
 - [Testes](#testes)
+- [Padrão de contribuição e documentação](#padrão-de-contribuição-e-documentação)
 - [Automação (GitHub Actions)](#automação-github-actions)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Limitações e honestidade](#limitações-e-honestidade)
@@ -54,8 +56,9 @@ A versão 2 inverte a pergunta:
 | Escala | 4 ativos fixos | universo configurável de 18 ativos |
 | Interface | dashboard estático + e-mail | **painel interativo + API + CLI** |
 
-O resultado é um orientador que você pode realmente seguir: ele diz o que
-fazer, **por quê**, quanto custa em risco, e **o que o faria mudar de ideia**.
+O resultado é uma ferramenta de apoio à decisão: apresenta sugestões, seus
+motivos, riscos e o que poderia mudar a análise. Não executa ordens nem
+substitui orientação financeira profissional.
 
 ---
 
@@ -462,7 +465,8 @@ cache e pagaria o custo cheio de novo.
 
 ## Instalação
 
-**Pré-requisitos:** Python 3.10+.
+**Pré-requisitos:** Python 3.12 (versão testada no CI e usada na imagem).
+Para os testes dos painéis, Node conforme `package.json` (CI: Node 22).
 
 ```bash
 git clone https://github.com/evertonldesouza/TrendBot.git
@@ -510,16 +514,18 @@ Algumas decisões do `Dockerfile`:
   entra por variável de ambiente em tempo de execução — nunca no build.
 - **`MPLBACKEND=Agg`.** Os gráficos rodam sem tela; numa imagem enxuta, sem
   isso o matplotlib procura um display que não existe.
-- **`PORT` é lido pela app**, então plataformas que injetam a porta funcionam
-  sem mudança de código.
+- **Porta:** a imagem inicia o Uvicorn na porta 8000. Para usar outra,
+  substitua o comando do contêiner e mapeie a porta correspondente; apenas
+  definir `PORT` não altera o comando padrão da imagem.
 - **Healthcheck em `/api/health`**, que responde sem tocar em rede — barato o
   suficiente para rodar a cada minuto.
 - **Usuário não-root** (uid 1000), criado depois do `COPY` para não brigar com
   permissão.
 
-O `.dockerignore` exclui `docs/`, `tests/` e artefatos locais: o repositório
-carrega bem mais do que a API precisa, e `docs/` é ~1 MB de dados publicados
-que o painel estático serve por conta própria.
+O `.dockerignore` exclui os JSON publicados e artefatos locais; o Dockerfile
+copia explicitamente `docs/comum.js`, necessário ao painel interativo. Só
+`requirements.txt` é instalado na imagem; dependências de teste ficam em
+`requirements-dev.txt`.
 
 **Nenhum deploy executa ordens.** O sistema devolve uma recomendação de
 alocação; a API não tem — e não deve ter — credencial de corretora.
@@ -551,50 +557,69 @@ DATA_DIR=data
 
 ---
 
+## Segurança
+
+A API é uma ferramenta de análise, **não um serviço pronto para exposição
+pública**: não há autenticação, autorização nem limitação de requisições na
+aplicação. Antes de expor, coloque-a atrás de um proxy com TLS, controle de
+acesso, limites de tamanho/taxa e tempo de execução, e monitore recursos e
+logs. Os limites de parâmetros reduzem abuso acidental, mas não substituem
+essas proteções nem impedem esgotamento por requisições concorrentes.
+
+- GET e POST de `/api/relatorio` aceitam de 200 a 3000 dias e no máximo 32
+  ativos; valores financeiros validados devem ser finitos e não negativos.
+  Entradas inválidas retornam 422. No GET, trechos malformados da carteira
+  continuam sendo ignorados pelo parser de compatibilidade. A disponibilidade de histórico pode ser menor; um
+  intervalo válido não garante que haja dados suficientes para previsão.
+- A API não devolve detalhes de exceções do motor ao cliente; logs do servidor
+  podem conter detalhes e devem ter acesso restrito e retenção apropriada.
+- Informações de carteira no GET podem aparecer em logs e histórico de URLs;
+  prefira POST com HTTPS para dados sensíveis. O corpo do POST também pode ser
+  registrado por proxies: configure-os para não registrar dados sensíveis.
+- A imagem usa usuário não-root, sem dependências de teste. Não inclua segredos
+  em commits, imagens, fixtures ou logs. Use variáveis de ambiente e um gestor
+  de segredos; `.env` é ignorado pelo Git. A recomendação publicada no Pages é
+  pública: não publique carteiras privadas.
+- Auditorias de dependências são periódicas, não uma garantia de ausência de
+  vulnerabilidades. Consulte [SECURITY.md](SECURITY.md) para reporte e limites.
+
+---
+
 ## Testes
 
-```bash
-pytest tests/ -v
+Para desenvolver, instale as dependências adicionais e execute:
 
-# cobertura
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+PYTHONHASHSEED=1 pytest tests/ -q
+npm ci
+node tests/painel/check.mjs
+# opcional: cobertura local
 coverage run --source=trendbot,trendbot_engine,trendbot_coleta,app -m pytest tests/
 coverage report
 ```
 
-**156 testes, 100% offline** (nenhum toca em CoinGecko ou Binance), cobrindo
-**88%** do núcleo.
+A suíte Python usa dados simulados e mocks para não depender dos provedores de
+mercado. Testa, entre outras coisas, limites e respostas da API, cálculo de
+risco, calibração e compatibilidade com o pipeline legado. A checagem com
+jsdom carrega o núcleo compartilhado e renderiza **ambos** os painéis com dados
+publicados ou fixtures; ela verifica cards, gráficos, erros e funções órfãs.
+Não substitui testes em navegadores reais.
 
-| Módulo | Cobertura | O que segura no lugar |
-|---|---|---|
-| `backtest.py` | 95% | métricas do comparativo |
-| `assets.py` | 93% | catálogo e nomes canônicos |
-| `forecast.py` | 92% | quantis, calibração, peso do modelo |
-| `risk.py` | 92% | risco, estresse, contribuições |
-| `app/main.py` | 91% | contrato HTTP da API |
-| `cli.py` | 91% | linha de comando |
-| `advisor.py` | 90% | montagem da recomendação |
-| `indicators.py` | 90% | indicadores técnicos |
-| `config.py` | 86% | perfis e settings |
-| `trendbot_coleta.py` | 85% | shim de compatibilidade da v1 |
-| `report.py` | 82% | gráficos e payload |
-| `data.py` | 98% | provedores, cache e fallback |
-
-### O painel também é testado
-
-O dashboard é servido direto do `docs/`, sem build. Durante muito tempo isso
-significou que **nada** o validava — e ele já entregou função definida e nunca
-chamada, e link para imagem que deixou de existir. Os dois passam batido porque
-o navegador não reclama de função parada nem confere `href`.
+### Auditoria de dependências
 
 ```bash
-npm ci
-node tests/painel/check.mjs
+python -m pip install 'pip-audit>=2.9,<3'
+pip-audit -r requirements-dev.txt
+npm audit --audit-level=low
 ```
 
-Sobe o DOM com os dados publicados e confere: sintaxe, **função definida e
-nunca chamada**, um card por ativo, o gráfico desenhado, nenhum link para
-arquivo não publicado, e o veredito do modelo preenchido — porque um painel que
-esconde as próprias limitações está justamente burlando a proposta do projeto.
+As auditorias precisam de rede. O Python usa faixas de versões, não um lockfile:
+`pip-audit` resolve dependências no momento da execução; o resultado pode não
+ser idêntico às versões de uma imagem já publicada. O npm audita o lockfile de
+ferramentas de desenvolvimento. Corrija ou atualize dependências com revisão e
+testes; falhas de rede também devem ser investigadas.
 
 ### A imagem Docker
 
@@ -603,7 +628,8 @@ docker build -t trendbot .
 docker run --rm -p 8000:8000 trendbot
 ```
 
-O CI constrói a imagem e espera o healthcheck dela ficar `healthy` em todo PR.
+O CI constrói a imagem, espera o healthcheck ficar `healthy` e verifica que
+`/comum/comum.js` responde e `pytest` não está instalado, em todo PR.
 Antes, um Dockerfile quebrado — ou um `requirements.txt` sem o uvicorn, que é o
 `CMD` — só aparecia quando alguém tentava subir o contêiner à mão.
 
@@ -630,15 +656,24 @@ por construírem dados em que a grandeza medida não variava.
 
 ## Automação (GitHub Actions)
 
-O workflow `.github/workflows/daily_report.yml` roda diariamente:
+O workflow `.github/workflows/daily_report.yml` roda em PRs para `main`,
+pushes em `main`, execução manual e diariamente às 13h UTC:
 
-1. **job `qualidade`** — instala dependências e roda os testes;
-2. **job `relatorio`** (só se os testes passarem) — executa
-   `python trendbot_engine.py`, que roda o motor novo e publica no formato
-   legado: `docs/data.json`, `docs/historico.json`, `docs/relatorio_completo.json`
-   e os gráficos. O dashboard estático do GitHub Pages em `docs/` continua
-   funcionando sem alteração, e o histórico de acertos segue sendo conferido
-   dia após dia (critério: preço realizado dentro do intervalo de 90%).
+1. `qualidade`: suíte Python duas vezes, incluindo outra semente de hash.
+2. `painel` e `imagem`: testes JS e smoke test da imagem nos eventos não
+   agendados.
+3. `seguranca`: `pip-audit` e `npm audit`; **falha o check no PR**. Em outros
+   eventos o job é informativo, sem bloquear a publicação. Isso não configura
+   automaticamente proteção de branch: marque os checks obrigatórios nas
+   configurações do GitHub para exigir sua aprovação antes de mesclar.
+4. `relatorio`: depende de `qualidade`, não da auditoria. Fora de PR, executa
+   `trendbot_engine.py` e publica os dados legados em `docs/data.json` e
+   `docs/historico.json`, além da recomendação quando disponível. A publicação
+   diária fica condicionada aos testes Python, não ao sucesso da auditoria.
+
+As permissões do workflow são somente leitura, exceto no job de publicação,
+que precisa escrever o relatório. O CI não faz deploy automático da API nem
+publica imagens Docker; o Pages usa a configuração existente do repositório.
 
 #### A recomendação precisa conhecer a sua carteira
 
@@ -729,10 +764,30 @@ aumentar muito aqui vira peso diário no git; quando o teto corta, o motor avisa
 quantas previsões saíram.
 
 **Isso não é a janela do backtest.** O backtest roda sobre dados de mercado e
-cobre 3,5 anos; o histórico de acertos cobre os últimos ~100 dias de previsões
+cobre a janela de dados disponível; o histórico cobre até ~100 dias de previsões
 publicadas. São coisas diferentes, e um não valida o outro: o backtest diz como a
 estratégia teria se saído, o histórico diz como os intervalos estão se
 comportando agora.
+
+---
+
+## Padrão de contribuição e documentação
+
+Para cada melhoria, correção ou mudança de comportamento:
+
+1. Atualize este README quando instalação, configuração, API, arquitetura ou
+   operação mudarem; registre a mudança em [CHANGELOG.md](CHANGELOG.md), seção
+   “Não lançado”, com impacto e limitações relevantes.
+2. Inclua testes automatizados para o comportamento e regressões; quando
+   viável, verifique por mutação que o teste falha ao reintroduzir o defeito.
+   Execute a suíte pertinente e registre o que não pôde ser testado.
+3. Avalie segurança: entradas, segredos, privacidade, dependências, permissões e
+   custo computacional. Não inclua dados de carteira reais em fixtures.
+4. Preserve a publicação legada de `docs/data.json` e `docs/historico.json`;
+   identifique mudanças incompatíveis e seu plano de migração.
+5. No PR, descreva motivação, mudanças, testes, riscos e documentação. Use o
+   [modelo de PR](.github/PULL_REQUEST_TEMPLATE.md). A revisão humana e a
+   proteção de branch devem ser configuradas no GitHub; o modelo não as impõe.
 
 ---
 
@@ -754,12 +809,15 @@ TrendBot/
 ├── app/
 │   ├── main.py                   # API FastAPI
 │   └── static/                   # painel (HTML/CSS/JS puro, SVG próprio)
-├── tests/test_trendbot.py        # 39 testes
-├── docs/                         # dashboard estático (GitHub Pages, legado)
+├── tests/                        # testes Python e checagem dos dois painéis
+├── docs/                         # GitHub Pages e núcleo JS compartilhado
 ├── trendbot_engine.py            # compatibilidade com o pipeline v1
 ├── trendbot_coleta.py            # compatibilidade com a coleta v1
 ├── limpar_historico.py           # utilitário: remove duplicatas do histórico
-├── requirements.txt
+├── requirements.txt              # dependências de produção
+├── requirements-dev.txt          # dependências de desenvolvimento
+├── SECURITY.md                   # política e limitações de segurança
+├── CHANGELOG.md                  # histórico de mudanças
 └── readme.md
 ```
 

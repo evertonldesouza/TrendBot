@@ -26,8 +26,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # o pacote trendbot (núcleo quantitativo) e a app FastAPI
 COPY trendbot ./trendbot
 COPY app ./app
+# O painel da API carrega o mesmo núcleo que o GitHub Pages.
+COPY docs/comum.js ./docs/comum.js
 
-# a API lê PORT, mas não expõe nada além de HTTP
+# A porta do comando abaixo é 8000; para alterá-la, substitua o comando.
 EXPOSE 8000
 
 # healthcheck: /api/health responde sem tocar em rede, então é barato

@@ -102,7 +102,7 @@ def find_by_symbol(symbol: str) -> Asset:
 # histórico: "BITCOIN" e "BTC" são o mesmo ativo. Sem unificar, o mesmo dia é
 # registrado duas vezes e a precisão por moeda quebra.
 #
-# ATENÇÃO: este mapa precisa espelhar MOEDAS_CANONICAS em docs/script.js — o
+# ATENÇÃO: este mapa precisa espelhar MOEDAS_CANONICAS em docs/comum.js — o
 # teste test_mapa_de_moedas_do_python_e_do_dashboard_concordam confere os dois.
 _ALIASES_MOEDA: dict[str, str] = {}
 

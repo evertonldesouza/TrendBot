@@ -19,13 +19,14 @@ import os
 import threading
 import time
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Annotated, Any
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from trendbot import backtest as bt
 from trendbot import report
@@ -73,7 +74,7 @@ async def lifespan(_: FastAPI):
                            duracao_s=round(time.time() - inicio, 2))
             logger.info("Aquecimento concluído em %.2fs", time.time() - inicio)
         except Exception as exc:  # noqa: BLE001 - aquecimento nunca derruba a API
-            _WARMUP.update(status="erro", erro=str(exc),
+            _WARMUP.update(status="erro", erro="Falha no aquecimento.",
                            duracao_s=round(time.time() - inicio, 2))
             logger.warning("Aquecimento falhou: %s", exc)
 
@@ -86,15 +87,25 @@ app = FastAPI(title="TrendBot", version="2.0.0",
               lifespan=lifespan)
 
 
+@app.exception_handler(RequestValidationError)
+async def erro_validacao(_: Request, exc: RequestValidationError) -> JSONResponse:
+    # Não refletir entradas arbitrárias nem números não finitos na resposta.
+    return JSONResponse(status_code=422, content={"detail": "Parâmetros inválidos."})
+
+
 # ---------------------------------------------------------------------------
 # Modelos de entrada
 # ---------------------------------------------------------------------------
 
+ValorFinanceiro = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+NomeAtivo = Annotated[str, Field(min_length=1, max_length=64)]
+
+
 class CarteiraInput(BaseModel):
-    capital: float = Field(default=25_000.0, ge=0)
-    aporte_mensal: float = Field(default=1_000.0, ge=0)
-    posicoes: dict[str, float] = Field(default_factory=dict)
-    caixa: float = Field(default=0.0, ge=0)
+    capital: ValorFinanceiro = 25_000.0
+    aporte_mensal: ValorFinanceiro = 1_000.0
+    posicoes: dict[NomeAtivo, ValorFinanceiro] = Field(default_factory=dict, max_length=32)
+    caixa: ValorFinanceiro = 0.0
 
 
 # Espelha exatamente os defaults do painel (app/static/app.js). Manter os dois
@@ -107,11 +118,11 @@ PADRAO_ATIVOS = ["bitcoin", "ethereum", "solana", "cardano"]
 
 
 class RelatorioRequest(BaseModel):
-    perfil: str = "moderado"
-    ativos: list[str] | None = PADRAO_ATIVOS
-    dias: int = 1095
-    fonte: str = "auto"
-    horizonte: int = 30
+    perfil: str = Field(default="moderado", min_length=1, max_length=64)
+    ativos: list[NomeAtivo] | None = Field(default_factory=lambda: list(PADRAO_ATIVOS), max_length=32)
+    dias: int = Field(default=1095, ge=200, le=3000)
+    fonte: str = Field(default="auto", min_length=1, max_length=64)
+    horizonte: int = Field(default=30, ge=1, le=365)
     carteira: CarteiraInput = Field(
         default_factory=lambda: CarteiraInput(posicoes=dict(PADRAO_POSICOES),
                                               caixa=PADRAO_CAIXA))
@@ -197,23 +208,26 @@ def _chave_cache(req: "RelatorioRequest") -> str:
 
 @app.get("/api/relatorio")
 def relatorio_get(
-    perfil: str = Query("moderado"),
-    ativos: str = Query(""),
-    dias: int = Query(1095),
-    fonte: str = Query("auto"),
-    capital: float = Query(10_000.0),
-    aporte: float = Query(0.0),
-    carteira: str = Query(""),
+    perfil: str = Query("moderado", min_length=1, max_length=64),
+    ativos: str = Query("", max_length=2048),
+    dias: int = Query(1095, ge=200, le=3000),
+    fonte: str = Query("auto", min_length=1, max_length=64),
+    capital: float = Query(10_000.0, ge=0, allow_inf_nan=False),
+    aporte: float = Query(0.0, ge=0, allow_inf_nan=False),
+    carteira: str = Query("", max_length=2048),
     backtest: bool = Query(True),
 ) -> JSONResponse:
     posicoes, caixa = parse_carteira(carteira)
-    req = RelatorioRequest(
-        perfil=perfil,
-        ativos=[a for a in ativos.split(",") if a.strip()] or None,
-        dias=dias, fonte=fonte, backtest=backtest,
-        carteira=CarteiraInput(capital=capital, aporte_mensal=aporte,
-                               posicoes=posicoes, caixa=caixa),
-    )
+    try:
+        req = RelatorioRequest(
+            perfil=perfil,
+            ativos=[a for a in ativos.split(",") if a.strip()] or None,
+            dias=dias, fonte=fonte, backtest=backtest,
+            carteira=CarteiraInput(capital=capital, aporte_mensal=aporte,
+                                   posicoes=posicoes, caixa=caixa),
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail="Parâmetros inválidos.") from exc
     return relatorio_post(req)
 
 
@@ -231,10 +245,11 @@ def relatorio_post(req: RelatorioRequest) -> JSONResponse:
     try:
         payload = _montar_relatorio(req)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("Parâmetros ou dados inválidos: %s", exc)
+        raise HTTPException(status_code=400, detail="Não foi possível processar os parâmetros ou dados informados.") from exc
     except Exception as exc:  # noqa: BLE001
         logger.exception("Falha ao gerar relatório")
-        raise HTTPException(status_code=500, detail=f"Falha ao gerar relatório: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Falha interna ao gerar relatório.") from exc
 
     payload["cache"] = {"hit": False, "idade_s": 0.0}
     payload["meta"]["tempo_processamento_s"] = round(time.time() - started, 2)
@@ -253,13 +268,14 @@ def index() -> FileResponse:
 # estáticos em /static (o painel referencia /static/app.js e /static/styles.css)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# O conteúdo de docs/ é público por definição — é o que o Pages serve — então
-# expô-lo aqui não vaza nada. Se o diretório não existir, o painel interativo
-# fica sem o núcleo e quebra, por isso o aviso é erro e não warning.
-if os.path.isdir(DOCS_DIR):
-    app.mount("/comum", StaticFiles(directory=DOCS_DIR), name="comum")
+# A API expõe somente o núcleo necessário ao painel. Se o arquivo não existir,
+# o painel interativo quebra, por isso o aviso é erro e não warning.
+if os.path.isfile(os.path.join(DOCS_DIR, "comum.js")):
+    @app.get("/comum/comum.js", include_in_schema=False)
+    def nucleo_painel() -> FileResponse:
+        return FileResponse(os.path.join(DOCS_DIR, "comum.js"), media_type="application/javascript")
 else:
-    logger.error("docs/ não encontrado em %s: o painel não terá comum.js", DOCS_DIR)
+    logger.error("comum.js não encontrado em %s: o painel não terá núcleo compartilhado", DOCS_DIR)
 
 
 if __name__ == "__main__":
